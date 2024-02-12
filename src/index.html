@@ -11,7 +11,7 @@
 
   <div id="app">
     <label>
-      Decklist<br>
+      Decklist <a v-if="decklist.trim().length > 0" :href="getDeckURL(decklist)">(permalink)</a><br>
       <textarea class="decklist" v-model="decklist"></textarea>
     </label>
 

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>MTG Deckviewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="index.css" rel="stylesheet">
+</head>
+<body>
+  <h1>MTG Deckviewer</h1>
+
+  <div id="app">
+    <label>
+      Decklist<br>
+      <textarea class="decklist" v-model="decklist"></textarea>
+    </label>
+
+    <div class="deck">
+      <template v-for="section in deck">
+        <h2>{{ section.name }}</h2>
+        <div class="cards">
+          <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
+            {{ card.data.name }}
+            <span class="card-image" :style="getBackgroundImage(card)"></span>
+            <span class="card-count">x{{ card.count }}</span>
+          </a>
+        </div>
+      </template>
+    </div>
+  </div>
+  <script type="module" src="index.js"></script>
+
+  <footer>
+    <p>このサイトはファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。ウィザーズ社の認可/許諾は得ていません。題材の一部に、ウィザーズ・オブ・ザ・コースト社の財産を含んでいます。©Wizards of the Coast LLC.</p>
+
+    <address>
+      <strong>wantora</strong>
+      / <a href="https://github.com/wantora">github</a>
+    </address>
+  </footer>
+</body>
+</html>

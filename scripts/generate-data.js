@@ -27,12 +27,13 @@ function getColor(cardObject) {
   if (parseTypeLine(cardObject.type_line).includes("Land")) {
     return cardObject.color_identity;
   } else {
-    if (cardObject.card_faces) {
-      return cardObject.card_faces[0].colors;
-    } else {
+    if (cardObject.colors) {
       return cardObject.colors;
+    } else if (cardObject.card_faces) {
+      return cardObject.card_faces[0].colors;
     }
   }
+  return null;
 }
 
 function getImage(cardObject) {

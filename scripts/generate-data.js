@@ -127,7 +127,7 @@ async function cacheHttpGet(uri) {
 }
 
 (async () => {
-  let oracleCardsUri;
+  let oracleCardsData;
 
   const metadata = JSON.parse(
     await httpGet("https://api.scryfall.com/bulk-data")
@@ -135,19 +135,21 @@ async function cacheHttpGet(uri) {
 
   for (const data of metadata.data) {
     if (data.type === "oracle_cards") {
-      oracleCardsUri = data.download_uri;
+      oracleCardsData = data;
     }
   }
 
   const oracleCards = oracleCardsParser();
 
   await pipeline(
-    await cacheHttpGet(oracleCardsUri),
+    await cacheHttpGet(oracleCardsData.download_uri),
     StreamArray.withParser(),
     oracleCards.stream
   );
 
   const cardData = await oracleCards.promise;
+  cardData.updatedAt = Date.parse(oracleCardsData.updated_at);
+
   const outputFile = "src/data.json";
 
   fs.mkdirSync(path.dirname(outputFile), {recursive: true});

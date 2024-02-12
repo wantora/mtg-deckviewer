@@ -130,6 +130,17 @@ function getBackgroundImage(card) {
   }
 }
 
+function getDeckURL(decklist) {
+  if (decklist.trim().length === 0) {
+    return null;
+  } else {
+    const url = new URL(location.origin + location.pathname);
+    url.searchParams.set("deck", decklist);
+
+    return url.href;
+  }
+}
+
 createApp({
   setup() {
     const decklist = ref("");
@@ -147,11 +158,17 @@ createApp({
       cardData.value = await res.json();
     })();
 
+    const search = new URLSearchParams(location.search);
+    if (search.has("deck")) {
+      decklist.value = search.get("deck");
+    }
+
     return {
       decklist,
       deck,
       cardData,
       getBackgroundImage,
+      getDeckURL,
     };
   },
 }).mount("#app");

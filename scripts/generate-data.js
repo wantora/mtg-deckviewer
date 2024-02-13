@@ -127,18 +127,9 @@ async function cacheHttpGet(uri) {
 }
 
 (async () => {
-  let oracleCardsData;
-
-  const metadata = JSON.parse(
-    await httpGet("https://api.scryfall.com/bulk-data")
+  const oracleCardsData = JSON.parse(
+    await httpGet("https://api.scryfall.com/bulk-data/oracle-cards")
   );
-
-  for (const data of metadata.data) {
-    if (data.type === "oracle_cards") {
-      oracleCardsData = data;
-    }
-  }
-
   const oracleCards = oracleCardsParser();
 
   await pipeline(

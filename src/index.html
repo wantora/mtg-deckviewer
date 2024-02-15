@@ -23,10 +23,21 @@
 
     <h1>MTG Deckviewer</h1>
 
-    <label>
-      Decklist <a v-if="decklist.trim().length > 0" :href="getDeckURL(decklist)">(permalink)</a><br>
-      <textarea class="decklist" v-model="decklist"></textarea>
-    </label>
+    <div class="decklists">
+      <div>
+        <label>
+          Decklist <a v-if="decklistText.trim().length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
+          <textarea v-model="decklistText"></textarea>
+        </label>
+      </div>
+      <div>→</div>
+      <div>
+        <label>
+          Decklist (Arena format)<br>
+          <textarea readonly v-model="arenaDecklistText" @focus="selectAll"></textarea>
+        </label>
+      </div>
+    </div>
 
     <hr>
 

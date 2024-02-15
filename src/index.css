@@ -22,10 +22,26 @@ h1 {
   line-height: 1;
 }
 
-.decklist {
+.decklists {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.5lh 0;
+}
+
+.decklists > div {
+  margin-right: 1.5ch;
+}
+
+.decklists textarea {
   font-size: 13px;
   width: 40ch;
   height: 10lh;
+  color: #000;
+  background-color: #fff;
+}
+
+.decklists textarea[readonly] {
+  background-color: #ccc;
 }
 
 .deck {

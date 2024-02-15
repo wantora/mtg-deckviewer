@@ -73,31 +73,28 @@ function getCardData(str, cardData) {
   }
 }
 
+const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
+
 function parseDecklist(src, cardData) {
-  const sections = [];
+  const sectionMap = new Map();
+
+  for (const name of SECTION_NAMES) {
+    sectionMap.set(name, new Map());
+  }
 
   for (const sectionSrc of src.trim().split(/\n{2,}/)) {
     const lines = sectionSrc
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line !== "");
-    const section = {
-      cards: null,
-      name: null,
-    };
-    const cards = new Map();
 
-    if (
-      lines[0] === "Companion" ||
-      lines[0] === "Commander" ||
-      lines[0] === "Deck" ||
-      lines[0] === "Sideboard"
-    ) {
-      section.name = lines.shift();
-    } else if (sections.every((sec) => sec.name !== "Deck")) {
-      section.name = "Deck";
+    let cardMap;
+    if (SECTION_NAMES.includes(lines[0])) {
+      cardMap = sectionMap.get(lines.shift());
+    } else if (sectionMap.get("Deck").size === 0) {
+      cardMap = sectionMap.get("Deck");
     } else {
-      section.name = "Sideboard";
+      cardMap = sectionMap.get("Sideboard");
     }
 
     for (const line of lines) {
@@ -106,17 +103,23 @@ function parseDecklist(src, cardData) {
       const name = m ? m[2] : line;
       const data = getCardData(name, cardData);
 
-      const card = cards.get(data.name);
-      if (card) {
-        card.count += count;
+      if (cardMap.has(data.name)) {
+        cardMap.get(data.name).count += count;
       } else {
-        cards.set(data.name, {count, data});
+        cardMap.set(data.name, {count, data});
       }
     }
-    section.cards = Array.from(cards.values()).sort(compareCards);
+  }
 
-    if (section.cards.length > 0) {
-      sections.push(section);
+  const sections = [];
+
+  for (const name of SECTION_NAMES) {
+    const cardMap = sectionMap.get(name);
+    if (cardMap.size > 0) {
+      sections.push({
+        name: name,
+        cards: Array.from(cardMap.values()).sort(compareCards),
+      });
     }
   }
 
@@ -143,12 +146,26 @@ function getDeckURL(decklist) {
   }
 }
 
+function selectAll(ev) {
+  ev.target.select();
+}
+
 createApp({
   setup() {
-    const decklist = ref("");
+    const decklistText = ref("");
+    const arenaDecklistText = computed(() => {
+      return (
+        deck.value
+          .map(
+            (section) =>
+              `${section.name}\n${section.cards.map((card) => `${card.count} ${card.data.name}`).join("\n")}`
+          )
+          .join("\n\n") + "\n"
+      );
+    });
     const deck = computed(() => {
       if (cardData.value) {
-        return parseDecklist(decklist.value, cardData.value);
+        return parseDecklist(decklistText.value, cardData.value);
       } else {
         return [];
       }
@@ -162,15 +179,17 @@ createApp({
 
     const search = new URLSearchParams(location.search);
     if (search.has("deck")) {
-      decklist.value = search.get("deck");
+      decklistText.value = search.get("deck");
     }
 
     return {
-      decklist,
+      decklistText,
+      arenaDecklistText,
       deck,
       cardData,
       getBackgroundImage,
       getDeckURL,
+      selectAll,
     };
   },
 }).mount("#app");

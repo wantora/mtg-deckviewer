@@ -16,6 +16,16 @@ function checkLegal(legalities) {
   return false;
 }
 
+function getArenaName(cardObject) {
+  if (cardObject.layout === "split") {
+    return cardObject.name;
+  } else if (cardObject.card_faces) {
+    return cardObject.card_faces[0].name;
+  } else {
+    return cardObject.name;
+  }
+}
+
 function parseTypeLine(typeLine) {
   return typeLine
     .match(/^[\w ]+/)[0]
@@ -64,7 +74,7 @@ function oracleCardsParser() {
       }
 
       const card = {
-        name: cardObject.name,
+        name: getArenaName(cardObject),
         cmc: cardObject.cmc,
         type: parseTypeLine(cardObject.type_line),
         color: getColor(cardObject),

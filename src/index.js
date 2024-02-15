@@ -101,7 +101,7 @@ function parseDecklist(src, cardData) {
     }
 
     for (const line of lines) {
-      const m = line.match(/^(\d+)\s+(.*?)(?:\s+\(\w+\)\s+\d+)?$/);
+      const m = line.match(/^(\d+)\s+(.*?)(?:\s+\(\w*\)\s+\d*)?$/);
       const count = m ? parseInt(m[1], 10) : 1;
       const name = m ? m[2] : line;
       const data = getCardData(name, cardData);

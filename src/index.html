@@ -7,14 +7,7 @@
   <link href="index.css" rel="stylesheet">
 </head>
 <body>
-  <h1>MTG Deckviewer</h1>
-
   <div id="app">
-    <label>
-      Decklist <a v-if="decklist.trim().length > 0" :href="getDeckURL(decklist)">(permalink)</a><br>
-      <textarea class="decklist" v-model="decklist"></textarea>
-    </label>
-
     <div class="deck">
       <template v-for="section in deck">
         <h2>{{ section.name }}</h2>
@@ -28,10 +21,17 @@
       </template>
     </div>
 
+    <h1>MTG Deckviewer</h1>
+
+    <label>
+      Decklist <a v-if="decklist.trim().length > 0" :href="getDeckURL(decklist)">(permalink)</a><br>
+      <textarea class="decklist" v-model="decklist"></textarea>
+    </label>
+
     <hr>
 
     <footer>
-      <p>Database updated: {{ cardData ? new Date(cardData.updatedAt).toLocaleDateString() : "" }}</p>
+      <p>Database updated: {{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</p>
     </footer>
   </div>
   <script type="module" src="index.js"></script>

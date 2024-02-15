@@ -17,6 +17,11 @@ a[href]:focus {
   color: #c5b5ff;
 }
 
+h1 {
+  margin: 0.5lh 0;
+  line-height: 1;
+}
+
 .decklist {
   font-size: 13px;
   width: 40ch;
@@ -26,7 +31,6 @@ a[href]:focus {
 .deck {
   display: grid;
   justify-content: start;
-  margin: 1lh 0;
   gap: 1lh 1ch;
 }
 
@@ -35,7 +39,7 @@ a[href]:focus {
   margin: 0;
   padding-top: 0.5lh;
   font-size: 120%;
-  writing-mode: vertical-lr;
+  writing-mode: vertical-rl;
 }
 
 .cards {

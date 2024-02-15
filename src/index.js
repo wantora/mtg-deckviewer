@@ -115,7 +115,9 @@ function parseDecklist(src, cardData) {
     }
     section.cards = Array.from(cards.values()).sort(compareCards);
 
-    sections.push(section);
+    if (section.cards.length > 0) {
+      sections.push(section);
+    }
   }
 
   return sections;

@@ -22,26 +22,10 @@ h1 {
   line-height: 1;
 }
 
-.decklists {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0.5lh 0;
-}
-
-.decklists > div {
-  margin-right: 1.5ch;
-}
-
-.decklists textarea {
+.decklist textarea {
   font-size: 13px;
   width: 40ch;
   height: 10lh;
-  color: #000;
-  background-color: #fff;
-}
-
-.decklists textarea[readonly] {
-  background-color: #ccc;
 }
 
 .deck {
@@ -106,4 +90,23 @@ h1 {
 
 footer {
   font-size: 80%;
+}
+
+.BalloonMessage {
+  padding: 0 0.5ch;
+  margin-left: 1ch;
+  border-radius: 0.35em;
+  color: #eee;
+  background-color: #000;
+  font-size: 90%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.BalloonMessage-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.BalloonMessage-leave-to {
+  opacity: 0;
 }

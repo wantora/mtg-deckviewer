@@ -3,6 +3,7 @@ import {
   ref,
   computed,
 } from "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.18/vue.esm-browser.prod.min.js";
+import BalloonMessage from "./components/BalloonMessage.js";
 
 function checkLand(type) {
   if (type.includes("Land")) {
@@ -146,23 +147,12 @@ function getDeckURL(decklist) {
   }
 }
 
-function selectAll(ev) {
-  ev.target.select();
-}
-
 createApp({
+  components: {
+    BalloonMessage,
+  },
   setup() {
     const decklistText = ref("");
-    const arenaDecklistText = computed(() => {
-      return (
-        deck.value
-          .map(
-            (section) =>
-              `${section.name}\n${section.cards.map((card) => `${card.count} ${card.data.name}`).join("\n")}`
-          )
-          .join("\n\n") + "\n"
-      );
-    });
     const deck = computed(() => {
       if (cardData.value) {
         return parseDecklist(decklistText.value, cardData.value);
@@ -171,6 +161,24 @@ createApp({
       }
     });
     const cardData = ref(null);
+    const showCopyArenaDecklistMessage = ref(false);
+
+    async function copyArenaDecklist() {
+      const text =
+        deck.value
+          .map(
+            (section) =>
+              `${section.name}\n${section.cards.map((card) => `${card.count} ${card.data.name}`).join("\n")}`
+          )
+          .join("\n\n") + "\n";
+
+      await navigator.clipboard.writeText(text);
+      showCopyArenaDecklistMessage.value = true;
+
+      setTimeout(() => {
+        showCopyArenaDecklistMessage.value = false;
+      }, 1000);
+    }
 
     (async () => {
       const res = await fetch("data.json");
@@ -184,12 +192,12 @@ createApp({
 
     return {
       decklistText,
-      arenaDecklistText,
       deck,
       cardData,
       getBackgroundImage,
       getDeckURL,
-      selectAll,
+      copyArenaDecklist,
+      showCopyArenaDecklistMessage,
     };
   },
 }).mount("#app");

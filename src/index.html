@@ -5,43 +5,45 @@
   <title>MTG Deckviewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="index.css" rel="stylesheet">
+  <script type="module" src="index.js"></script>
 </head>
 <body>
   <div id="app">
-    <div class="deck">
-      <template v-for="section in deck">
-        <h2>{{ section.name }}</h2>
-        <div class="cards">
-          <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
-            {{ card.data.name }}
-            <span class="card-image" :style="getBackgroundImage(card)"></span>
-            <span class="card-count">x{{ card.count }}</span>
-          </a>
-        </div>
-      </template>
-    </div>
+    <template v-if="true">
+      <div class="deck">
+        <template v-for="section in deck">
+          <h2>{{ section.name }}</h2>
+          <div class="cards">
+            <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
+              {{ card.data.name }}
+              <span class="card-image" :style="getBackgroundImage(card)"></span>
+              <span class="card-count">x{{ card.count }}</span>
+            </a>
+          </div>
+        </template>
+      </div>
 
-    <h1>MTG Deckviewer</h1>
+      <h1>MTG Deckviewer</h1>
 
-    <p class="decklist">
-      <label>
-        Decklist <a v-if="deck.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
-        <textarea v-model="decklistText"></textarea>
-      </label>
-    </p>
+      <p class="decklist">
+        <label>
+          Decklist <a v-if="deck.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
+          <textarea v-model="decklistText"></textarea>
+        </label>
+      </p>
 
-    <p v-if="deck.length > 0">
-      <button @click="copyArenaDecklist">Copy Decklist (Arena format)</button>
-      <balloon-message :show="showCopyArenaDecklistMessage">Copied!</balloon-message>
-    </p>
+      <p v-if="deck.length > 0">
+        <button @click="copyArenaDecklist">Copy Decklist (Arena format)</button>
+        <balloon-message :show="showCopyArenaDecklistMessage">Copied!</balloon-message>
+      </p>
 
-    <hr>
+      <hr>
 
-    <footer>
-      <p>Database updated: {{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</p>
-    </footer>
+      <footer>
+        <p>Database updated: {{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</p>
+      </footer>
+    </template>
   </div>
-  <script type="module" src="index.js"></script>
 
   <footer>
     <p>カードの情報と画像は <a href="https://scryfall.com/">Scryfall</a> を利用しています。</p>

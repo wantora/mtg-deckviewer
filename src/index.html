@@ -23,21 +23,17 @@
 
     <h1>MTG Deckviewer</h1>
 
-    <div class="decklists">
-      <div>
-        <label>
-          Decklist <a v-if="decklistText.trim().length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
-          <textarea v-model="decklistText"></textarea>
-        </label>
-      </div>
-      <div>→</div>
-      <div>
-        <label>
-          Decklist (Arena format)<br>
-          <textarea readonly v-model="arenaDecklistText" @focus="selectAll"></textarea>
-        </label>
-      </div>
-    </div>
+    <p class="decklist">
+      <label>
+        Decklist <a v-if="deck.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
+        <textarea v-model="decklistText"></textarea>
+      </label>
+    </p>
+
+    <p v-if="deck.length > 0">
+      <button @click="copyArenaDecklist">Copy Decklist (Arena format)</button>
+      <balloon-message :show="showCopyArenaDecklistMessage">Copied!</balloon-message>
+    </p>
 
     <hr>
 

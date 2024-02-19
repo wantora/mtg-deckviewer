@@ -16,7 +16,7 @@
           <div class="cards">
             <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
               {{ card.data.name }}
-              <span class="card-image" :style="getBackgroundImage(card)"></span>
+              <span class="card-image" :style="getBackgroundImage(card.data.image)"></span>
               <span class="card-count">x{{ card.count }}</span>
             </a>
           </div>
@@ -27,7 +27,7 @@
 
       <p class="decklist">
         <label>
-          Decklist <a v-if="deck.sections.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
+          Decklist <a v-if="deck.sections.length > 0" :href="getPermalink()">(permalink)</a><br>
           <textarea v-model="decklistText"></textarea>
         </label>
       </p>

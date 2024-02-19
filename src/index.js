@@ -77,11 +77,8 @@ function getCardData(str, cardData) {
 const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
 
 function parseDecklist(src, cardData) {
-  const sectionMap = new Map();
-
-  for (const name of SECTION_NAMES) {
-    sectionMap.set(name, new Map());
-  }
+  const sectionMap = new Map(SECTION_NAMES.map((name) => [name, new Map()]));
+  let deckName = null;
 
   for (const sectionSrc of src.trim().split(/\n{2,}/)) {
     const lines = sectionSrc
@@ -90,7 +87,17 @@ function parseDecklist(src, cardData) {
       .filter((line) => line !== "");
 
     let cardMap;
-    if (SECTION_NAMES.includes(lines[0])) {
+    if (lines[0] === "About") {
+      // https://magic.wizards.com/en/news/mtg-arena/mtg-arena-announcements-february-19-2024
+      lines.shift();
+      for (const line of lines) {
+        const m = line.match(/^Name (.*)$/);
+        if (m) {
+          deckName = m[1];
+        }
+      }
+      continue;
+    } else if (SECTION_NAMES.includes(lines[0])) {
       cardMap = sectionMap.get(lines.shift());
     } else if (sectionMap.get("Deck").size === 0) {
       cardMap = sectionMap.get("Deck");
@@ -124,7 +131,7 @@ function parseDecklist(src, cardData) {
     }
   }
 
-  return sections;
+  return {name: deckName, sections: sections};
 }
 
 function getBackgroundImage(card) {
@@ -157,20 +164,24 @@ createApp({
       if (cardData.value) {
         return parseDecklist(decklistText.value, cardData.value);
       } else {
-        return [];
+        return {name: null, sections: []};
       }
     });
     const cardData = ref(null);
     const showCopyArenaDecklistMessage = ref(false);
 
     async function copyArenaDecklist() {
-      const text =
-        deck.value
+      let text =
+        deck.value.sections
           .map(
             (section) =>
               `${section.name}\n${section.cards.map((card) => `${card.count} ${card.data.name}`).join("\n")}`
           )
           .join("\n\n") + "\n";
+
+      if (deck.value.name) {
+        text = `About\nName ${deck.value.name}\n\n${text}`;
+      }
 
       await navigator.clipboard.writeText(text);
       showCopyArenaDecklistMessage.value = true;

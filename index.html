@@ -11,7 +11,7 @@
   <div id="app">
     <template v-if="true">
       <div class="deck">
-        <template v-for="section in deck">
+        <template v-for="section in deck.sections">
           <h2>{{ section.name }}</h2>
           <div class="cards">
             <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
@@ -27,12 +27,12 @@
 
       <p class="decklist">
         <label>
-          Decklist <a v-if="deck.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
+          Decklist <a v-if="deck.sections.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
           <textarea v-model="decklistText"></textarea>
         </label>
       </p>
 
-      <p v-if="deck.length > 0">
+      <p v-if="deck.sections.length > 0">
         <button @click="copyArenaDecklist">Copy Decklist (Arena format)</button>
         <balloon-message :show="showCopyArenaDecklistMessage">Copied!</balloon-message>
       </p>

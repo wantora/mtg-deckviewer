@@ -4,8 +4,8 @@ import {
   shallowRef,
   computed,
 } from "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.18/vue.esm-browser.prod.min.js";
-import BalloonMessage from "./components/BalloonMessage.js";
-import Decklist from "./lib/Decklist.js";
+import CopyButton from "./components/CopyButton.js";
+import Decklist, {SECTION_NAMES} from "./lib/Decklist.js";
 
 function getBackgroundImage(imageUrl) {
   if (imageUrl) {
@@ -17,30 +17,28 @@ function getBackgroundImage(imageUrl) {
 
 createApp({
   components: {
-    BalloonMessage,
+    CopyButton,
   },
   setup() {
-    const decklistText = ref("");
-    const deck = computed(
-      () => new Decklist(decklistText.value, cardData.value)
+    const decklistTexts = ref([""]);
+    const decklists = computed(() =>
+      decklistTexts.value.map((text) => new Decklist(text, cardData.value))
     );
     const cardData = shallowRef(null);
-    const showCopyArenaDecklistMessage = ref(false);
-
-    async function copyArenaDecklist() {
-      await navigator.clipboard.writeText(deck.value.toArenaDecklist());
-      showCopyArenaDecklistMessage.value = true;
-
-      setTimeout(() => {
-        showCopyArenaDecklistMessage.value = false;
-      }, 1000);
-    }
 
     function getPermalink() {
       const url = new URL(location.origin + location.pathname);
-      url.searchParams.set("deck", decklistText.value);
+      for (const text of decklistTexts.value) {
+        if (text.trim() !== "") {
+          url.searchParams.append("deck", text);
+        }
+      }
 
       return url.href;
+    }
+
+    function getSectionIndex(name) {
+      return SECTION_NAMES.indexOf(name);
     }
 
     (async () => {
@@ -50,17 +48,18 @@ createApp({
 
     const search = new URLSearchParams(location.search);
     if (search.has("deck")) {
-      decklistText.value = search.get("deck");
+      search.getAll("deck").forEach((text, index) => {
+        decklistTexts.value[index] = text;
+      });
     }
 
     return {
-      decklistText,
-      deck,
+      decklistTexts,
+      decklists,
       cardData,
       getBackgroundImage,
       getPermalink,
-      copyArenaDecklist,
-      showCopyArenaDecklistMessage,
+      getSectionIndex,
     };
   },
 }).mount("#app");

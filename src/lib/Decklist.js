@@ -67,7 +67,7 @@ function getCardData(str, cardData) {
   }
 }
 
-const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
+export const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
 
 export default class Decklist {
   constructor(decklistText, cardData) {

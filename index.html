@@ -8,44 +8,57 @@
   <script type="module" src="index.js"></script>
 </head>
 <body>
+  <h1>MTG Deckviewer</h1>
+
   <div id="app">
     <template v-if="true">
-      <div class="deck">
-        <template v-for="section in deck.sections">
-          <h2>{{ section.name }}</h2>
-          <div class="cards">
-            <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
-              {{ card.data.name }}
-              <span class="card-image" :style="getBackgroundImage(card)"></span>
-              <span class="card-count">x{{ card.count }}</span>
-            </a>
-          </div>
+      <p v-if="decklistTexts.length > 1">
+        <label><input type="checkbox" v-model="compareMode">Compare mode</label>
+      </p>
+
+      <p>Decklist <a v-if="decklistTexts.some((text) => text.trim() !== '')" :href="getPermalink()">(permalink)</a></p>
+
+      <div class="decklistTexts">
+        <div class="decklistText" v-for="(decklistText, index) in decklistTexts">
+          <p><textarea
+            :value="decklistText"
+            @input="event => decklistTexts[index] = event.target.value"></textarea></p>
+
+          <p><copy-button :text="decklists[index].toArenaDecklist()">Copy Decklist (Arena format)</copy-button></p>
+        </div>
+        <div class="decklistText appendButton">
+          <button @click="decklistTexts.push('')">＋</button>
+        </div>
+      </div>
+
+      <div :class="{decklists: true, multi: sectionsList.length > 1}">
+        <template v-for="(sections, index) in sectionsList">
+          <h2 class="deck-name" v-if="compareMode && index > 0" :style="{gridColumn: 2 + index * 2, gridRow: 1}">
+            #{{ index }}
+          </h2>
+
+          <template v-for="section in sections">
+            <h3 class="section-name" :style="{gridColumn: 1 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">{{ section.name }}</h3>
+            <div :class="{cards: true, diff: compareMode && index > 0}" :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">
+              <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
+                {{ card.data.name }}
+                <span class="card-image" :style="getBackgroundImage(card.data.image)"></span>
+                <span class="card-count">x{{ card.count }}</span>
+              </a>
+            </div>
+          </template>
         </template>
       </div>
 
-      <h1>MTG Deckviewer</h1>
-
-      <p class="decklist">
-        <label>
-          Decklist <a v-if="deck.sections.length > 0" :href="getDeckURL(decklistText)">(permalink)</a><br>
-          <textarea v-model="decklistText"></textarea>
-        </label>
-      </p>
-
-      <p v-if="deck.sections.length > 0">
-        <button @click="copyArenaDecklist">Copy Decklist (Arena format)</button>
-        <balloon-message :show="showCopyArenaDecklistMessage">Copied!</balloon-message>
-      </p>
-
-      <hr>
-
-      <footer>
-        <p>Database updated: {{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</p>
-      </footer>
+      <teleport to="#database-updated">{{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</teleport>
     </template>
   </div>
 
+  <hr>
+
   <footer>
+    <p>Database updated: <span id="database-updated"></span></p>
+
     <p>カードの情報と画像は <a href="https://scryfall.com/">Scryfall</a> を利用しています。</p>
     <p>このサイトはファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。ウィザーズ社の認可/許諾は得ていません。題材の一部に、ウィザーズ・オブ・ザ・コースト社の財産を含んでいます。©Wizards of the Coast LLC.</p>
 

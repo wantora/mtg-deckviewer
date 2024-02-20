@@ -1,3 +1,6 @@
+const COLOR_NAMES = ["W", "U", "B", "R", "G"];
+export const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
+
 function checkLand(type) {
   if (type.includes("Land")) {
     return 1;
@@ -14,7 +17,6 @@ function getColorOrder(color) {
   }
 }
 
-const COLOR_NAMES = ["W", "U", "B", "R", "G"];
 function getColorNameOrder(colorName) {
   const index = COLOR_NAMES.indexOf(colorName);
   if (index === -1) {
@@ -67,18 +69,83 @@ function getCardData(str, cardData) {
   }
 }
 
-export const SECTION_NAMES = ["Commander", "Companion", "Deck", "Sideboard"];
+function newSectionMap() {
+  return new Map(SECTION_NAMES.map((name) => [name, new Map()]));
+}
+
+function generateSections(sectionMap) {
+  const sections = [];
+  for (const name of SECTION_NAMES) {
+    const cardMap = sectionMap.get(name);
+    if (cardMap.size > 0) {
+      sections.push({
+        name: name,
+        cards: Array.from(cardMap.values()).sort(compareCards),
+      });
+    }
+  }
+  return sections;
+}
+
+export function compareDecklist(decklists) {
+  const commonMap = newSectionMap();
+  const diffMaps = decklists.map(() => newSectionMap());
+
+  const sectionMaps = decklists.map((decklist) => decklist.sectionMap);
+
+  for (const [sectionName, cardMap] of sectionMaps[0]) {
+    for (const [cardName, card] of cardMap) {
+      const minCount = Math.min(
+        ...sectionMaps.map(
+          (s) => (s.get(sectionName).get(cardName) || {count: 0}).count
+        )
+      );
+
+      if (minCount > 0) {
+        commonMap.get(sectionName).set(cardName, {
+          count: minCount,
+          data: card.data,
+        });
+
+        sectionMaps.forEach((sectionMap, index) => {
+          const c = sectionMap.get(sectionName).get(cardName);
+          if (c) {
+            const count = c.count - minCount;
+            if (count > 0) {
+              diffMaps[index].get(sectionName).set(cardName, {
+                count: count,
+                data: card.data,
+              });
+            }
+          }
+        });
+      }
+    }
+  }
+
+  sectionMaps.forEach((sectionMap, index) => {
+    for (const [sectionName, cardMap] of sectionMap) {
+      for (const [cardName, card] of cardMap) {
+        if (!commonMap.get(sectionName).has(cardName)) {
+          diffMaps[index].get(sectionName).set(cardName, card);
+        }
+      }
+    }
+  });
+
+  return [commonMap, ...diffMaps].map((sectionMap) =>
+    generateSections(sectionMap)
+  );
+}
 
 export default class Decklist {
   constructor(decklistText, cardData) {
     this.name = null;
-    this.sections = [];
+    this.sectionMap = newSectionMap();
 
     if (!cardData) {
       return;
     }
-
-    const sectionMap = new Map(SECTION_NAMES.map((name) => [name, new Map()]));
 
     for (const sectionSrc of decklistText.trim().split(/\n{2,}/)) {
       const lines = sectionSrc
@@ -98,11 +165,11 @@ export default class Decklist {
         }
         continue;
       } else if (SECTION_NAMES.includes(lines[0])) {
-        cardMap = sectionMap.get(lines.shift());
-      } else if (sectionMap.get("Deck").size === 0) {
-        cardMap = sectionMap.get("Deck");
+        cardMap = this.sectionMap.get(lines.shift());
+      } else if (this.sectionMap.get("Deck").size === 0) {
+        cardMap = this.sectionMap.get("Deck");
       } else {
-        cardMap = sectionMap.get("Sideboard");
+        cardMap = this.sectionMap.get("Sideboard");
       }
 
       for (const line of lines) {
@@ -118,16 +185,9 @@ export default class Decklist {
         }
       }
     }
-
-    for (const name of SECTION_NAMES) {
-      const cardMap = sectionMap.get(name);
-      if (cardMap.size > 0) {
-        this.sections.push({
-          name: name,
-          cards: Array.from(cardMap.values()).sort(compareCards),
-        });
-      }
-    }
+  }
+  get sections() {
+    return generateSections(this.sectionMap);
   }
   toArenaDecklist() {
     const texts = this.sections.map((section) => {

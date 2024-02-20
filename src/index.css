@@ -1,12 +1,14 @@
 :root {
   --card-width: 146px;
   --card-height: 204px;
+  --gap-size: 20px;
 }
 
 body {
   background-color: #333;
   color: #eee;
   font-size: 16px;
+  margin: calc(var(--gap-size) / 2);
 }
 
 a[href] {
@@ -19,7 +21,7 @@ a[href]:focus {
 }
 
 h1 {
-  margin: 0.5lh 0;
+  margin: var(--gap-size) 0;
   line-height: 1;
 }
 
@@ -27,8 +29,8 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   align-content: start;
-  gap: 1lh 1ch;
-  margin-bottom: 1lh;
+  gap: var(--gap-size) calc(var(--gap-size) / 2);
+  margin-bottom: var(--gap-size);
 }
 
 .decklistText p {
@@ -36,7 +38,7 @@ h1 {
 }
 
 .decklistText textarea {
-  margin-bottom: 0.5lh;
+  margin-bottom: calc(var(--gap-size) / 2);
   font-size: 13px;
   width: 40ch;
   height: 10lh;
@@ -49,12 +51,18 @@ h1 {
 .decklists {
   display: grid;
   justify-content: start;
-  gap: 0 1ch;
+  gap: 0 calc(var(--gap-size) / 2);
 }
 
-.decklists h2 {
+.deck-name {
   margin: 0;
-  padding-top: 0.5lh;
+  font-size: 120%;
+  margin-bottom: calc(var(--gap-size) / 2);
+}
+
+.section-name {
+  margin: 0;
+  padding-top: calc(var(--gap-size));
   font-size: 120%;
   writing-mode: vertical-rl;
 }
@@ -64,11 +72,15 @@ h1 {
   flex-wrap: wrap;
   align-content: start;
   max-width: calc(var(--card-width) * 10);
-  margin-bottom: 1lh;
+  margin-bottom: var(--gap-size);
 }
 
 .decklists.multi .cards {
   min-width: calc(var(--card-width) * 5);
+}
+
+.decklists.multi .cards.diff {
+  min-width: calc(var(--card-width) * 3);
 }
 
 .card {

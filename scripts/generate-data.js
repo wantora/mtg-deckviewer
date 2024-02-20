@@ -7,6 +7,14 @@ const {Readable} = require("node:stream");
 const {pipeline} = require("node:stream/promises");
 const StreamArray = require("stream-json/streamers/StreamArray");
 
+const OVERRIDE_CARDS = [
+  "https://api.scryfall.com/cards/thb/250",
+  "https://api.scryfall.com/cards/thb/251",
+  "https://api.scryfall.com/cards/thb/252",
+  "https://api.scryfall.com/cards/thb/253",
+  "https://api.scryfall.com/cards/thb/254",
+];
+
 function checkLegal(legalities) {
   for (const legality of Object.values(legalities)) {
     if (legality !== "not_legal") {
@@ -110,7 +118,9 @@ function httpGet(uri) {
         rawData += chunk;
       });
       res.on("end", () => {
-        resolve(rawData);
+        setTimeout(() => {
+          resolve(rawData);
+        }, 100);
       });
     });
   });
@@ -150,6 +160,13 @@ async function cacheHttpGet(uri) {
 
   const cardData = await oracleCards.promise;
   cardData.updatedAt = Date.parse(oracleCardsData.updated_at);
+
+  for (const url of OVERRIDE_CARDS) {
+    const cardObject = JSON.parse(await httpGet(url));
+    const card = cardData.cards[cardData.cardNames[cardObject.name]];
+    card.uri = cardObject.scryfall_uri;
+    card.image = getImage(cardObject);
+  }
 
   const outputFile = "src/data.json";
 

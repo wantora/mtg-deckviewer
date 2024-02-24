@@ -134,8 +134,10 @@ footer {
   color: #eee;
   background-color: #000;
   font-size: 90%;
-  user-select: none;
-  pointer-events: none;
+  white-space: pre-wrap;
+  display: inline-block;
+  position: absolute;
+  z-index: 1000;
 }
 
 .BalloonMessage-leave-active {

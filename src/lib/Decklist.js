@@ -54,7 +54,13 @@ function compareCards(a, b) {
 }
 
 function getCardData(str, cardData) {
-  const index = cardData.cardNames[str.replace(/ *\/{1,2} *.*$/, "")];
+  const name = str
+    .replace(/ *\/{1,2} *.*$/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFC");
+
+  const index = cardData.cardNames[name];
   if (index === undefined) {
     return {
       name: str,

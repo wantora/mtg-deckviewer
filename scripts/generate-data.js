@@ -34,6 +34,20 @@ function getArenaName(cardObject) {
   }
 }
 
+function getNormalizedName(cardObject) {
+  let name;
+  if (cardObject.card_faces) {
+    name = cardObject.card_faces[0].name;
+  } else {
+    name = cardObject.name;
+  }
+
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFC");
+}
+
 function parseTypeLine(typeLine) {
   return typeLine
     .match(/^[\w ]+/)[0]
@@ -100,11 +114,7 @@ function oracleCardsParser() {
       cards.push(card);
       const index = cards.length - 1;
 
-      if (cardObject.card_faces) {
-        cardNames[cardObject.card_faces[0].name] = index;
-      } else {
-        cardNames[cardObject.name] = index;
-      }
+      cardNames[getNormalizedName(cardObject)] = index;
     },
     close() {
       resolve({cards, cardNames});

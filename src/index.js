@@ -15,6 +15,18 @@ function getBackgroundImage(imageUrl) {
   }
 }
 
+function getCopyMessage(decklist) {
+  const arenaUnavailableCards = decklist.arenaUnavailableCards;
+  if (arenaUnavailableCards.length > 0) {
+    return (
+      "Copied!\nUnavailable cards:\n" +
+      arenaUnavailableCards.map((card) => card.data.name).join("\n")
+    );
+  } else {
+    return "Copied!";
+  }
+}
+
 createApp({
   components: {
     CopyButton,
@@ -68,6 +80,7 @@ createApp({
       sectionsList,
       cardData,
       getBackgroundImage,
+      getCopyMessage,
       getPermalink,
       getSectionIndex,
     };

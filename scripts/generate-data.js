@@ -54,6 +54,13 @@ function getColor(cardObject) {
   return null;
 }
 
+function getArenaAvailable(cardObject) {
+  return (
+    cardObject.legalities.historic !== "not_legal" ||
+    cardObject.legalities.timeless !== "not_legal"
+  );
+}
+
 function getImage(cardObject) {
   if (cardObject.image_uris) {
     return cardObject.image_uris.small;
@@ -86,6 +93,7 @@ function oracleCardsParser() {
         cmc: cardObject.cmc,
         type: parseTypeLine(cardObject.type_line),
         color: getColor(cardObject),
+        arena: getArenaAvailable(cardObject),
         uri: cardObject.scryfall_uri,
         image: getImage(cardObject),
       };

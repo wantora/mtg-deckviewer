@@ -39,9 +39,15 @@ createApp({
     );
     const sectionsList = computed(() => {
       if (compareMode.value && decklists.value.length > 1) {
-        return compareDecklist(decklists.value);
+        return compareDecklist(decklists.value).map((sections, index) => ({
+          name: index === 0 ? "" : `#${index}`,
+          sections: sections,
+        }));
       } else {
-        return decklists.value.map((decklist) => decklist.sections);
+        return decklists.value.map((decklist, index) => ({
+          name: `#${index + 1}`,
+          sections: decklist.sections,
+        }));
       }
     });
     const cardData = shallowRef(null);

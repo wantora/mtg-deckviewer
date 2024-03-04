@@ -1,11 +1,8 @@
 "use strict";
 
-const fs = require("node:fs");
+const fsPromises = require("node:fs/promises");
 const https = require("node:https");
 const path = require("node:path");
-const {Readable} = require("node:stream");
-const {pipeline} = require("node:stream/promises");
-const StreamArray = require("stream-json/streamers/StreamArray");
 
 const OVERRIDE_CARDS = [
   "https://api.scryfall.com/cards/thb/250",
@@ -76,55 +73,45 @@ function getArenaAvailable(cardObject) {
 }
 
 function getImage(cardObject) {
+  let imageUris = null;
   if (cardObject.image_uris) {
-    return cardObject.image_uris.small;
+    imageUris = cardObject.image_uris;
   } else if (cardObject.card_faces && cardObject.card_faces[0].image_uris) {
-    return cardObject.card_faces[0].image_uris.small;
+    imageUris = cardObject.card_faces[0].image_uris;
   }
-  return null;
+
+  if (imageUris) {
+    return imageUris.small;
+  } else {
+    return null;
+  }
 }
 
-function oracleCardsParser() {
+function oracleCardsParser(oracleCardsData) {
   const cards = [];
   const cardNames = {};
 
-  let resolve, reject;
-  const promise = new Promise((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
+  for (const cardObject of oracleCardsData) {
+    if (!checkLegal(cardObject.legalities)) {
+      continue;
+    }
 
-  const stream = new WritableStream({
-    write(chunk) {
-      const cardObject = chunk.value;
+    const card = {
+      name: getArenaName(cardObject),
+      cmc: cardObject.cmc,
+      type: parseTypeLine(cardObject.type_line),
+      color: getColor(cardObject),
+      arena: getArenaAvailable(cardObject),
+      uri: cardObject.scryfall_uri,
+      image: getImage(cardObject),
+    };
+    cards.push(card);
+    const index = cards.length - 1;
 
-      if (!checkLegal(cardObject.legalities)) {
-        return;
-      }
+    cardNames[getNormalizedName(cardObject)] = index;
+  }
 
-      const card = {
-        name: getArenaName(cardObject),
-        cmc: cardObject.cmc,
-        type: parseTypeLine(cardObject.type_line),
-        color: getColor(cardObject),
-        arena: getArenaAvailable(cardObject),
-        uri: cardObject.scryfall_uri,
-        image: getImage(cardObject),
-      };
-      cards.push(card);
-      const index = cards.length - 1;
-
-      cardNames[getNormalizedName(cardObject)] = index;
-    },
-    close() {
-      resolve({cards, cardNames});
-    },
-    abort() {
-      reject();
-    },
-  });
-
-  return {stream, promise};
+  return {cards, cardNames};
 }
 
 function httpGet(uri) {
@@ -147,37 +134,27 @@ function httpGet(uri) {
 async function cacheHttpGet(uri) {
   const cacheFile = path.join("cache", path.basename(uri));
 
-  if (fs.existsSync(cacheFile)) {
-    return fs.createReadStream(cacheFile);
-  } else {
-    fs.mkdirSync(path.dirname(cacheFile), {recursive: true});
+  try {
+    return await fsPromises.readFile(cacheFile, {encoding: "utf8"});
+  } catch (error) {
+    const data = await httpGet(uri);
 
-    const res = await new Promise((resolve, reject) => {
-      https.get(uri, (r) => {
-        resolve(r);
-      });
-    });
-
-    const streams = Readable.toWeb(res).tee();
-    pipeline(streams[0], fs.createWriteStream(cacheFile));
-    return streams[1];
+    await fsPromises.mkdir(path.dirname(cacheFile), {recursive: true});
+    await fsPromises.writeFile(cacheFile, data);
+    return data;
   }
 }
 
 (async () => {
-  const oracleCardsData = JSON.parse(
+  const oracleCardsInfo = JSON.parse(
     await httpGet("https://api.scryfall.com/bulk-data/oracle-cards")
   );
-  const oracleCards = oracleCardsParser();
-
-  await pipeline(
-    await cacheHttpGet(oracleCardsData.download_uri),
-    StreamArray.withParser(),
-    oracleCards.stream
+  const oracleCardsData = JSON.parse(
+    await cacheHttpGet(oracleCardsInfo.download_uri)
   );
 
-  const cardData = await oracleCards.promise;
-  cardData.updatedAt = Date.parse(oracleCardsData.updated_at);
+  const cardData = oracleCardsParser(oracleCardsData);
+  cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
 
   for (const url of OVERRIDE_CARDS) {
     const cardObject = JSON.parse(await httpGet(url));
@@ -187,7 +164,6 @@ async function cacheHttpGet(uri) {
   }
 
   const outputFile = "src/data.json";
-
-  fs.mkdirSync(path.dirname(outputFile), {recursive: true});
-  fs.writeFileSync(outputFile, JSON.stringify(cardData));
+  await fsPromises.mkdir(path.dirname(outputFile), {recursive: true});
+  await fsPromises.writeFile(outputFile, JSON.stringify(cardData));
 })();

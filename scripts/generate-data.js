@@ -81,7 +81,7 @@ function getImage(cardObject) {
   }
 
   if (imageUris) {
-    return imageUris.small;
+    return imageUris.normal;
   } else {
     return null;
   }

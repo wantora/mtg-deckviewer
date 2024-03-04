@@ -1,6 +1,6 @@
 :root {
-  --card-width: 146px;
-  --card-height: 204px;
+  --card-width: calc(488px * 0.3);
+  --card-height: calc(680px * 0.3);
   --gap-size: 20px;
 }
 

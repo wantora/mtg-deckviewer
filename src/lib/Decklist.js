@@ -34,9 +34,9 @@ function compareFns(fns) {
 const compareCardFns = [
   compareNumber((card) => (card.data.type.includes("Land") ? 1 : 0)),
   compareNumber((card) => card.data.cmc),
-  compareNumber((card) => {
-    return card.data.color.length === 0 ? 100 : card.data.color.length;
-  }),
+  compareNumber((card) =>
+    card.data.color.length === 0 ? 100 : card.data.color.length
+  ),
   compareNumber((card) => {
     const index = COLOR_NAMES.indexOf(card.data.color[0]);
     return index === -1 ? 100 : index;

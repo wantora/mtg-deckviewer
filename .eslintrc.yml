@@ -14,105 +14,64 @@ env:
   commonjs: true
 
 rules:
-  # Possible Errors
-  for-direction: "error"
-  getter-return: "error"
-  no-console: ["warn", {allow: ["info", "warn", "error"]}] # eslint:recommended
-  no-prototype-builtins: "error"
-  no-template-curly-in-string: "error"
+  # eslint:recommended
+  no-unused-vars: ["error", {"args": "none"}]
 
-  # Best Practices
-  accessor-pairs: "error"
+  # Possible Problems
   array-callback-return: "error"
+  no-constant-binary-expression: "error"
+  no-self-compare: "error"
+  no-template-curly-in-string: "error"
+  no-unmodified-loop-condition: "error"
+  no-unreachable-loop: "error"
+  require-atomic-updates: "error"
+
+  # Suggestions
+  camelcase: "error"
   consistent-return: "error"
-  curly: ["error", "all"] # prettier
-  default-case: "error"
+  curly: "error"
   eqeqeq: "error"
+  func-name-matching: "error"
   guard-for-in: "error"
-  no-alert: "warn"
   no-caller: "error"
+  no-console: ["warn", {allow: ["info", "warn", "error"]}]
   no-div-regex: "error"
+  no-duplicate-imports: "error"
   no-empty-function: "error"
-  no-eq-null: "error"
   no-eval: "error"
   no-extend-native: "error"
-  no-extra-bind: "error"
-  no-extra-label: "error"
-  no-implicit-coercion: "error"
   no-implied-eval: "error"
   no-invalid-this: "error"
   no-iterator: "error"
-  no-labels: "error"
-  no-lone-blocks: "error"
+  no-label-var: "error"
   no-loop-func: "error"
-  no-multi-str: "error"
   no-new-func: "error"
   no-new-wrappers: "error"
   no-octal-escape: "error"
   no-param-reassign: "error"
   no-proto: "error"
-  no-return-assign: "error"
-  no-return-await: "error"
   no-script-url: "error"
-  no-self-compare: "error"
   no-sequences: "error"
+  no-shadow: ["error", {"builtinGlobals": true, "allow": ["name", "event"]}]
   no-throw-literal: "error"
-  no-unmodified-loop-condition: "error"
+  no-undef-init: "error"
+  no-unneeded-ternary: "error"
   no-unused-expressions: "error"
-  no-useless-call: "error"
-  no-useless-concat: "error"
-  no-useless-return: "error"
-  no-void: "error"
+  no-var: "error"
   no-warning-comments: "warn"
-  no-with: "error"
+  prefer-arrow-callback: "error"
   prefer-promise-reject-errors: "error"
   radix: "error"
-
-  # Strict Mode
   strict: ["error", "global"]
-
-  # Variables
-  no-catch-shadow: "error"
-  no-label-var: "error"
-  no-shadow-restricted-names: "error"
-  no-shadow: ["error", {"builtinGlobals": true, "allow": ["name", "event"]}]
-  no-undef-init: "error"
-  no-unused-vars: ["error", {"args": "none"}] # eslint:recommended
-
-  # Stylistic Issues
-  camelcase: "error"
-  func-name-matching: "error"
-  func-style: ["error", "declaration", {"allowArrowFunctions": true}]
-  linebreak-style: ["error", "unix"]
-  lines-between-class-members: ["error", "never"]
-  no-array-constructor: "error"
-  no-negated-condition: "error"
-  no-nested-ternary: "error"
-  no-new-object: "error"
-  no-underscore-dangle: ["error", {"allowAfterThis": true}]
-  no-unneeded-ternary: "error"
-  spaced-comment: "error"
-
-  # ECMAScript 6
-  no-confusing-arrow: ["error", {"allowParens": true}] # prettier
-  no-duplicate-imports: "error"
-  no-useless-computed-key: "error"
-  no-useless-constructor: "error"
-  no-useless-rename: "error"
-  no-var: "error"
-  object-shorthand: ["error", "methods"]
-  prefer-arrow-callback: "error"
-  prefer-const: "error"
-  prefer-numeric-literals: "error"
-  prefer-rest-params: "error"
-  prefer-spread: "error"
   symbol-description: "error"
+
+  # Layout & Formatting
+  unicode-bom: "error"
 
   # prettier
   prettier/prettier:
     - error
-    - arrowParens: always
-      bracketSpacing: false
+    - bracketSpacing: false
       trailingComma: es5
 
 overrides:

@@ -3,6 +3,7 @@
 const fsPromises = require("node:fs/promises");
 const https = require("node:https");
 const path = require("node:path");
+const Database = require("better-sqlite3");
 
 const OVERRIDE_CARDS = [
   "https://api.scryfall.com/cards/thb/250",
@@ -11,6 +12,13 @@ const OVERRIDE_CARDS = [
   "https://api.scryfall.com/cards/thb/253",
   "https://api.scryfall.com/cards/thb/254",
 ];
+
+function removeDiacriticalMarks(str) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFC");
+}
 
 function checkLegal(legalities) {
   for (const legality of Object.values(legalities)) {
@@ -31,7 +39,7 @@ function getArenaName(cardObject) {
   }
 }
 
-function getNormalizedName(cardObject) {
+function getName(cardObject) {
   let name;
   if (cardObject.card_faces) {
     name = cardObject.card_faces[0].name;
@@ -39,10 +47,7 @@ function getNormalizedName(cardObject) {
     name = cardObject.name;
   }
 
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .normalize("NFC");
+  return name;
 }
 
 function parseTypeLine(typeLine) {
@@ -108,7 +113,9 @@ function oracleCardsParser(oracleCardsData) {
     cards.push(card);
     const index = cards.length - 1;
 
-    cardNames[getNormalizedName(cardObject)] = index;
+    const name = getName(cardObject);
+    cardNames[name] = index;
+    cardNames[removeDiacriticalMarks(name)] = index;
   }
 
   return {cards, cardNames};
@@ -145,6 +152,25 @@ async function cacheHttpGet(uri) {
   }
 }
 
+async function getDatabaseFile() {
+  const dir = path.join(
+    process.env.PROGRAMFILES,
+    "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
+  );
+
+  try {
+    for (const file of await fsPromises.readdir(dir)) {
+      if (file.match(/^Raw_CardDatabase_.*\.mtga$/)) {
+        return path.join(dir, file);
+      }
+    }
+  } catch (error) {
+    // pass
+  }
+
+  return null;
+}
+
 (async () => {
   const oracleCardsInfo = JSON.parse(
     await httpGet("https://api.scryfall.com/bulk-data/oracle-cards")
@@ -161,6 +187,30 @@ async function cacheHttpGet(uri) {
     const card = cardData.cards[cardData.cardNames[cardObject.name]];
     card.uri = cardObject.scryfall_uri;
     card.image = getImage(cardObject);
+  }
+
+  const dbFile = await getDatabaseFile();
+  if (dbFile) {
+    const db = new Database(dbFile, {readonly: true});
+    const dbCards = db.prepare("SELECT TitleId FROM Cards WHERE TitleId != 0");
+    const dbLocalizations = db.prepare(
+      "SELECT enUS, ptBR, frFR, itIT, deDE, esES, ruRU, jaJP, koKR FROM Localizations WHERE LocId = ?"
+    );
+
+    for (const card of dbCards.iterate()) {
+      const loc = dbLocalizations.get(card.TitleId);
+      if (Object.hasOwn(cardData.cardNames, loc.enUS)) {
+        const index = cardData.cardNames[loc.enUS];
+
+        for (const name of Object.values(loc)) {
+          if (!Object.hasOwn(cardData.cardNames, name)) {
+            cardData.cardNames[name] = index;
+          }
+        }
+      }
+    }
+  } else {
+    console.info("MTGA database not found");
   }
 
   const outputFile = "src/data.json";

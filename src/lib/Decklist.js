@@ -148,7 +148,7 @@ function generateSections(sectionMap) {
 
 function parseDecklistText(text) {
   let sections = [];
-  let currentSection = {name: "", lines: []};
+  let currentSection = {name: null, lines: []};
   sections.push(currentSection);
 
   let lines = text.trim().split("\n");
@@ -164,7 +164,7 @@ function parseDecklistText(text) {
   for (const line of lines.map((s) => s.trim())) {
     if (line === "" || line === "About" || SECTION_NAME_LOC.has(line)) {
       currentSection = {
-        name: SECTION_NAME_LOC.get(line),
+        name: SECTION_NAME_LOC.has(line) ? SECTION_NAME_LOC.get(line) : null,
         lines: [],
       };
       sections.push(currentSection);
@@ -176,7 +176,7 @@ function parseDecklistText(text) {
   sections = sections.filter((section) => section.lines.length > 0);
 
   for (const section of sections) {
-    if (section.name === "") {
+    if (section.name === null) {
       if (sections.some((s) => s.name === "Deck")) {
         section.name = "Sideboard";
       } else {

@@ -158,17 +158,31 @@ async function getDatabaseFile() {
     "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
   );
 
+  let dbFile = null;
+  let dbVersion = Infinity;
+
   try {
     for (const file of await fsPromises.readdir(dir)) {
       if (file.match(/^Raw_CardDatabase_.*\.mtga$/)) {
-        return path.join(dir, file);
+        const f = path.join(dir, file);
+        const db = new Database(f, {readonly: true});
+        const row = db
+          .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
+          .get();
+        db.close();
+
+        if (row.Version < dbVersion) {
+          dbFile = f;
+          dbVersion = row.Version;
+        }
       }
     }
   } catch (error) {
-    // pass
+    console.error(error);
+    return null;
   }
 
-  return null;
+  return dbFile;
 }
 
 (async () => {

@@ -44,6 +44,11 @@ h1 {
   height: 10lh;
 }
 
+.decklistText .decklistButtons {
+  display: flex;
+  justify-content: space-between;
+}
+
 .decklistText.appendButton {
   align-self: center;
 }

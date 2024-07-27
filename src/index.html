@@ -24,9 +24,12 @@
             :value="decklistText"
             @input="event => decklistTexts[index] = event.target.value"></textarea></p>
 
-          <p><copy-button
-            :text="decklists[index].toArenaDecklist()"
-            :message="getCopyMessage(decklists[index])" >Copy Decklist (Arena format)</copy-button></p>
+          <p class="decklistButtons">
+            <copy-button
+              :text="decklists[index].toArenaDecklist()"
+              :message="getCopyMessage(decklists[index])" >Copy Decklist (Arena format)</copy-button>
+            <button v-if="decklistTexts.length > 1" @click="decklistTexts.splice(index, 1)">×</button>
+          </p>
         </div>
         <div class="decklistText appendButton">
           <button @click="decklistTexts.push('')">＋</button>

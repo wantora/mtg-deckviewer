@@ -12,8 +12,9 @@
 
   <div id="app">
     <template v-if="true">
-      <p v-if="decklistTexts.length > 1">
-        <label><input type="checkbox" v-model="compareMode">Compare mode</label>
+      <p class="options">
+        <label><input type="checkbox" v-model="mtgarenaMode">Available in Arena</label>
+        <label v-if="decklistTexts.length > 1"><input type="checkbox" v-model="compareMode">Compare mode</label>
       </p>
 
       <p>Decklist <a v-if="decklistTexts.some((text) => text.trim() !== '')" :href="getPermalink()">(permalink)</a></p>
@@ -45,7 +46,7 @@
           <template v-for="section in data.sections">
             <h3 class="section-name" :style="{gridColumn: 1 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">{{ section.name }}</h3>
             <div :class="{cards: true, diff: compareMode && index > 0}" :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">
-              <a :class="{card: true, arenaUnavailable: !card.data.arena}" target="_blank" v-for="card in section.cards" :href="card.data.uri">
+              <a :class="{card: true, arenaUnavailable: mtgarenaMode && !card.data.arena}" target="_blank" v-for="card in section.cards" :href="card.data.uri">
                 {{ card.data.name }}
                 <span class="card-image" :style="getBackgroundImage(card.data.image)"></span>
                 <span class="card-count">x{{ card.count }}</span>

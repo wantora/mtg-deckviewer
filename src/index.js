@@ -32,6 +32,7 @@ createApp({
     CopyButton,
   },
   setup() {
+    const mtgarenaMode = ref(false);
     const compareMode = ref(false);
     const decklistTexts = ref([""]);
     const decklists = computed(() =>
@@ -80,6 +81,7 @@ createApp({
     }
 
     return {
+      mtgarenaMode,
       compareMode,
       decklistTexts,
       decklists,

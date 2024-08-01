@@ -39,12 +39,6 @@ const SECTION_NAME_LOC = new Map([
   ["Mazo", "Deck"],
   ["Sideboard", "Sideboard"],
 
-  // ruRU
-  ["Командир", "Commander"],
-  ["Компаньон", "Companion"],
-  ["Колода", "Deck"],
-  ["Доп. колода", "Sideboard"],
-
   // jaJP
   ["統率者", "Commander"],
   ["相棒", "Companion"],

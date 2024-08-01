@@ -132,16 +132,16 @@ function httpGet(uri) {
         },
       },
       (res) => {
-      res.setEncoding("utf8");
-      let rawData = "";
-      res.on("data", (chunk) => {
-        rawData += chunk;
-      });
-      res.on("end", () => {
-        setTimeout(() => {
-          resolve(rawData);
-        }, 100);
-      });
+        res.setEncoding("utf8");
+        let rawData = "";
+        res.on("data", (chunk) => {
+          rawData += chunk;
+        });
+        res.on("end", () => {
+          setTimeout(() => {
+            resolve(rawData);
+          }, 100);
+        });
       }
     );
   });
@@ -217,7 +217,7 @@ async function getDatabaseFile() {
     const db = new Database(dbFile, {readonly: true});
     const dbCards = db.prepare("SELECT TitleId FROM Cards WHERE TitleId != 0");
     const dbLocalizations = db.prepare(
-      "SELECT enUS, ptBR, frFR, itIT, deDE, esES, ruRU, jaJP, koKR FROM Localizations WHERE LocId = ?"
+      "SELECT enUS, ptBR, frFR, itIT, deDE, esES, jaJP, koKR FROM Localizations WHERE LocId = ?"
     );
 
     for (const card of dbCards.iterate()) {

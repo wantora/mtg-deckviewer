@@ -132,13 +132,8 @@ h1 {
   pointer-events: none;
 }
 
-.card.arenaUnavailable .card-image::before {
-  content: "";
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: block;
-  background-color: rgba(255,0,0,0.3);
+.card.arenaUnavailable .card-count {
+  color: #bd3a3a;
 }
 
 footer {

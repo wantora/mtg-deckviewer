@@ -123,7 +123,15 @@ function oracleCardsParser(oracleCardsData) {
 
 function httpGet(uri) {
   return new Promise((resolve, reject) => {
-    https.get(uri, (res) => {
+    https.get(
+      uri,
+      {
+        headers: {
+          "User-Agent": "mtg-deckviewer/1.0",
+          Accept: "*/*",
+        },
+      },
+      (res) => {
       res.setEncoding("utf8");
       let rawData = "";
       res.on("data", (chunk) => {
@@ -134,7 +142,8 @@ function httpGet(uri) {
           resolve(rawData);
         }, 100);
       });
-    });
+      }
+    );
   });
 }
 

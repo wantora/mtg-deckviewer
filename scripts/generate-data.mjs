@@ -1,9 +1,7 @@
-"use strict";
-
-const fsPromises = require("node:fs/promises");
-const https = require("node:https");
-const path = require("node:path");
-const Database = require("better-sqlite3");
+import {readFile, mkdir, writeFile, readdir} from "node:fs/promises";
+import {join, basename, dirname} from "node:path";
+import https from "node:https";
+import Database from "better-sqlite3";
 
 const OVERRIDE_CARDS = [
   "https://api.scryfall.com/cards/thb/250",
@@ -148,22 +146,22 @@ function httpGet(uri) {
 }
 
 async function cacheHttpGet(uri) {
-  const cacheFile = path.join("cache", path.basename(uri));
+  const cacheFile = join("cache", basename(uri));
 
   try {
-    return await fsPromises.readFile(cacheFile, {encoding: "utf8"});
+    return await readFile(cacheFile, {encoding: "utf8"});
     // eslint-disable-next-line no-unused-vars
   } catch (error) {
     const data = await httpGet(uri);
 
-    await fsPromises.mkdir(path.dirname(cacheFile), {recursive: true});
-    await fsPromises.writeFile(cacheFile, data);
+    await mkdir(dirname(cacheFile), {recursive: true});
+    await writeFile(cacheFile, data);
     return data;
   }
 }
 
 async function getDatabaseFile() {
-  const dir = path.join(
+  const dir = join(
     process.env.PROGRAMFILES,
     "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
   );
@@ -172,9 +170,9 @@ async function getDatabaseFile() {
   let dbVersion = Infinity;
 
   try {
-    for (const file of await fsPromises.readdir(dir)) {
+    for (const file of await readdir(dir)) {
       if (file.match(/^Raw_CardDatabase_.*\.mtga$/)) {
-        const f = path.join(dir, file);
+        const f = join(dir, file);
         const db = new Database(f, {readonly: true});
         const row = db
           .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
@@ -238,6 +236,6 @@ async function getDatabaseFile() {
   }
 
   const outputFile = "src/data.json";
-  await fsPromises.mkdir(path.dirname(outputFile), {recursive: true});
-  await fsPromises.writeFile(outputFile, JSON.stringify(cardData));
+  await mkdir(dirname(outputFile), {recursive: true});
+  await writeFile(outputFile, JSON.stringify(cardData));
 })();

@@ -82,12 +82,11 @@ export default [
     },
   },
   {
-    files: ["scripts/*.js"],
+    files: ["scripts/*.mjs"],
     languageOptions: {
       globals: {
         ...globals.node,
       },
-      sourceType: "commonjs",
     },
     rules: {
       "no-console": "off",

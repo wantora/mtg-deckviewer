@@ -152,6 +152,7 @@ async function cacheHttpGet(uri) {
 
   try {
     return await fsPromises.readFile(cacheFile, {encoding: "utf8"});
+    // eslint-disable-next-line no-unused-vars
   } catch (error) {
     const data = await httpGet(uri);
 

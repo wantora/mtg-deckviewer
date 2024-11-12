@@ -229,6 +229,8 @@ async function getDatabaseFile() {
             cardData.cardNames[name] = index;
           }
         }
+
+        cardData.cardNames[loc.jaJP.replace(/（[^）]*）/g, "")] = index;
       }
     }
   } else {

@@ -68,13 +68,6 @@ function getColor(cardObject) {
   return null;
 }
 
-function getArenaAvailable(cardObject) {
-  return (
-    cardObject.legalities.historic !== "not_legal" ||
-    cardObject.legalities.timeless !== "not_legal"
-  );
-}
-
 function getImage(cardObject) {
   let imageUris = null;
   if (cardObject.image_uris) {
@@ -104,7 +97,7 @@ function oracleCardsParser(oracleCardsData) {
       cmc: cardObject.cmc,
       type: parseTypeLine(cardObject.type_line),
       color: getColor(cardObject),
-      arena: getArenaAvailable(cardObject),
+      arena: false,
       uri: cardObject.scryfall_uri,
       image: getImage(cardObject),
     };
@@ -223,6 +216,8 @@ async function getDatabaseFile() {
       const loc = dbLocalizations.get(card.TitleId);
       if (Object.hasOwn(cardData.cardNames, loc.enUS)) {
         const index = cardData.cardNames[loc.enUS];
+
+        cardData.cards[index].arena = true;
 
         for (const name of Object.values(loc)) {
           if (!Object.hasOwn(cardData.cardNames, name)) {

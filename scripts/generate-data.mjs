@@ -154,26 +154,42 @@ async function cacheHttpGet(uri) {
 }
 
 async function getDatabaseFile() {
-  const dir = join(
-    process.env.PROGRAMFILES,
-    "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
-  );
+  const dirs = [
+    join(
+      process.env["ProgramFiles"],
+      "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
+    ),
+    join(
+      process.env["ProgramFiles(x86)"],
+      "Steam/steamapps/common/MTGA/MTGA_Data/Downloads/Raw"
+    ),
+  ];
 
   let dbFile = null;
   let dbVersion = Infinity;
+  let files;
+
+  for (const dir of dirs) {
+    try {
+      files = (await readdir(dir)).map((file) => join(dir, file));
+      break;
+      // eslint-disable-next-line no-unused-vars
+    } catch (error) {
+      // pass
+    }
+  }
 
   try {
-    for (const file of await readdir(dir)) {
-      if (file.match(/^Raw_CardDatabase_.*\.mtga$/)) {
-        const f = join(dir, file);
-        const db = new Database(f, {readonly: true});
+    for (const file of files) {
+      if (basename(file).match(/^Raw_CardDatabase_.*\.mtga$/)) {
+        const db = new Database(file, {readonly: true});
         const row = db
           .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
           .get();
         db.close();
 
         if (row.Version < dbVersion) {
-          dbFile = f;
+          dbFile = file;
           dbVersion = row.Version;
         }
       }

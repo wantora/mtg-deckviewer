@@ -103,7 +103,7 @@ const compareCardFns = [
 ];
 
 function getCardData(str, cardData) {
-  let name = str.replace(/ *\/{1,2} *.*$/, "");
+  let name = str.replace(/ *(?:\/|\/\/|&&) *.*$/, "");
   if (!Object.hasOwn(cardData.cardNames, name)) {
     name = removeDiacriticalMarks(name);
   }

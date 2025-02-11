@@ -132,9 +132,29 @@ function generateSections(sectionMap) {
   for (const name of SECTION_NAMES) {
     const cardMap = sectionMap.get(name);
     if (cardMap.size > 0) {
+      const cards = Array.from(cardMap.values()).sort(
+        compareFns(compareCardFns)
+      );
+      const typeCount = {
+        land: 0,
+        creature: 0,
+        spell: 0,
+      };
+
+      for (const card of cards) {
+        if (card.data.type.includes("Land")) {
+          typeCount.land += card.count;
+        } else if (card.data.type.includes("Creature")) {
+          typeCount.creature += card.count;
+        } else {
+          typeCount.spell += card.count;
+        }
+      }
+
       sections.push({
         name: name,
-        cards: Array.from(cardMap.values()).sort(compareFns(compareCardFns)),
+        cards: cards,
+        typeCount: typeCount,
       });
     }
   }

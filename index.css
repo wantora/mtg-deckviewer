@@ -71,9 +71,17 @@ h1 {
 
 .section-name {
   margin: 0;
-  padding-top: calc(var(--gap-size));
+  padding-top: var(--gap-size);
   font-size: 120%;
   writing-mode: vertical-rl;
+}
+
+.type-count {
+  line-height: 1;
+  font-size: 95%;
+  text-align: right;
+  padding-right: var(--gap-size);
+  margin-bottom: var(--gap-size);
 }
 
 .cards {

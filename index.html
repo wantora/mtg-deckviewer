@@ -43,13 +43,18 @@
           </h2>
 
           <template v-for="section in data.sections">
-            <h3 class="section-name" :style="{gridColumn: 1 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">{{ section.name }}</h3>
-            <div :class="{cards: true, diff: compareMode && index > 0}" :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name)}">
+            <h3 class="section-name" :style="{gridColumn: 1 + index * 2, gridRowStart: 2 + getSectionIndex(section.name) * 2, gridRowEnd: 4 + getSectionIndex(section.name) * 2}">{{ section.name }}</h3>
+            <div :class="{cards: true, diff: compareMode && index > 0}" :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name) * 2}">
               <a :class="{card: true, arenaUnavailable: !card.data.arena}" target="_blank" v-for="card in section.cards" :href="card.data.uri" :title="card.data.arena ? null : 'Not available in Arena'">
                 {{ card.data.name }}
                 <span class="card-image" :style="getBackgroundImage(card.data.image)"></span>
                 <span class="card-count">x{{ card.count }}</span>
               </a>
+            </div>
+            <div class="type-count" :style="{gridColumn: 2 + index * 2, gridRow: 3 + getSectionIndex(section.name) * 2, display: section.name === 'Deck' ? '' : 'none'}">
+              Land {{ section.typeCount.land }} /
+              Creature {{ section.typeCount.creature }} /
+              Spell {{ section.typeCount.spell }}
             </div>
           </template>
         </template>

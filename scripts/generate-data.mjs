@@ -224,24 +224,30 @@ async function getDatabaseFile() {
   if (dbFile) {
     const db = new Database(dbFile, {readonly: true});
     const dbCards = db.prepare("SELECT TitleId FROM Cards WHERE TitleId != 0");
-    const dbLocalizations = db.prepare(
-      "SELECT enUS, ptBR, frFR, itIT, deDE, esES, jaJP, koKR FROM Localizations WHERE LocId = ?"
+    const dbLocalizations = new Map(
+      ["deDE", "enUS", "esES", "frFR", "itIT", "jaJP", "koKR", "ptBR"].map(
+        (lang) => [
+          lang,
+          db.prepare(
+            `SELECT Loc FROM Localizations_${lang} WHERE Formatted = 1 AND LocId = ?`
+          ),
+        ]
+      )
     );
 
     for (const card of dbCards.iterate()) {
-      const loc = dbLocalizations.get(card.TitleId);
-      if (Object.hasOwn(cardData.cardNames, loc.enUS)) {
-        const index = cardData.cardNames[loc.enUS];
-
+      const enUSname = dbLocalizations.get("enUS").get(card.TitleId).Loc;
+      if (Object.hasOwn(cardData.cardNames, enUSname)) {
+        const index = cardData.cardNames[enUSname];
         cardData.cards[index].arena = true;
 
-        for (const name of Object.values(loc)) {
-          if (!Object.hasOwn(cardData.cardNames, name)) {
-            cardData.cardNames[name] = index;
+        for (const [lang, dbLoc] of dbLocalizations) {
+          const name = dbLoc.get(card.TitleId).Loc;
+          cardData.cardNames[name] = index;
+          if (lang === "jaJP") {
+            cardData.cardNames[name.replace(/（[^）]*）/g, "")] = index;
           }
         }
-
-        cardData.cardNames[loc.jaJP.replace(/（[^）]*）/g, "")] = index;
       }
     }
   } else {

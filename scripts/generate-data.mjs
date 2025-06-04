@@ -18,12 +18,23 @@ function removeDiacriticalMarks(str) {
     .normalize("NFC");
 }
 
-function checkLegal(legalities) {
-  for (const legality of Object.values(legalities)) {
+const TODAY = new Date().toISOString().slice(0, 10);
+
+function checkLegal(cardObject) {
+  for (const legality of Object.values(cardObject.legalities)) {
     if (legality !== "not_legal") {
       return true;
     }
   }
+
+  if (
+    cardObject.released_at > TODAY &&
+    cardObject.set_type !== "memorabilia" &&
+    cardObject.set_type !== "token"
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -88,7 +99,7 @@ function oracleCardsParser(oracleCardsData) {
   const cardNames = {};
 
   for (const cardObject of oracleCardsData) {
-    if (!checkLegal(cardObject.legalities)) {
+    if (!checkLegal(cardObject)) {
       continue;
     }
 

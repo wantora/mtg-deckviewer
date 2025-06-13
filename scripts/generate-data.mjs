@@ -245,15 +245,21 @@ async function getDatabaseFile() {
         ]
       )
     );
+    function getMTGAName(lang, titleId) {
+      return dbLocalizations
+        .get(lang)
+        .get(titleId)
+        .Loc.replace(/<[^<>]+>/m, "");
+    }
 
     for (const card of dbCards.iterate()) {
-      const enUSname = dbLocalizations.get("enUS").get(card.TitleId).Loc;
+      const enUSname = getMTGAName("enUS", card.TitleId);
       if (Object.hasOwn(cardData.cardNames, enUSname)) {
         const index = cardData.cardNames[enUSname];
         cardData.cards[index].arena = true;
 
-        for (const [lang, dbLoc] of dbLocalizations) {
-          const name = dbLoc.get(card.TitleId).Loc;
+        for (const lang of dbLocalizations.keys()) {
+          const name = getMTGAName(lang, card.TitleId);
           cardData.cardNames[name] = index;
           if (lang === "jaJP") {
             cardData.cardNames[name.replace(/（[^）]*）/g, "")] = index;

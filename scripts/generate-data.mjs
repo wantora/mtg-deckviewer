@@ -245,12 +245,12 @@ async function getDatabaseFile() {
         ]
       )
     );
-    function getMTGAName(lang, titleId) {
+    const getMTGAName = (lang, titleId) => {
       return dbLocalizations
         .get(lang)
         .get(titleId)
-        .Loc.replace(/<[^<>]+>/m, "");
-    }
+        .Loc.replace(/<[^<>]+>/g, "");
+    };
 
     for (const card of dbCards.iterate()) {
       const enUSname = getMTGAName("enUS", card.TitleId);

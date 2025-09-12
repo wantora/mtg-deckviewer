@@ -48,7 +48,7 @@ function getArenaName(cardObject) {
   }
 }
 
-function getName(cardObject) {
+function getIndexName(cardObject) {
   let name;
   if (cardObject.card_faces) {
     name = cardObject.card_faces[0].name;
@@ -56,7 +56,7 @@ function getName(cardObject) {
     name = cardObject.name;
   }
 
-  return name;
+  return removeDiacriticalMarks(name);
 }
 
 function parseTypeLine(typeLine) {
@@ -113,10 +113,7 @@ function oracleCardsParser(oracleCardsData) {
     };
     cards.push(card);
     const index = cards.length - 1;
-
-    const name = getName(cardObject);
-    cardNames[name] = index;
-    cardNames[removeDiacriticalMarks(name)] = index;
+    cardNames[getIndexName(cardObject)] = index;
   }
 
   return {cards, cardNames};
@@ -239,25 +236,22 @@ async function getDatabaseFile() {
         (lang) => [
           lang,
           db.prepare(
-            `SELECT Loc FROM Localizations_${lang} WHERE Formatted = 1 AND LocId = ?`
+            `SELECT Loc FROM Localizations_${lang} WHERE (Formatted = 0 OR Formatted = 1) AND LocId = ? ORDER BY Formatted ASC`
           ),
         ]
       )
     );
-    const getMTGAName = (lang, titleId) => {
-      return dbLocalizations
-        .get(lang)
-        .get(titleId)
-        .Loc.replace(/<[^<>]+>/g, "");
+    const getMTGAIndexName = (lang, titleId) => {
+      return removeDiacriticalMarks(dbLocalizations.get(lang).get(titleId).Loc);
     };
 
     for (const card of dbCards.iterate()) {
-      const enUSname = getMTGAName("enUS", card.TitleId);
+      const enUSname = getMTGAIndexName("enUS", card.TitleId);
       if (Object.hasOwn(cardData.cardNames, enUSname)) {
         const index = cardData.cardNames[enUSname];
 
         for (const lang of dbLocalizations.keys()) {
-          const name = getMTGAName(lang, card.TitleId);
+          const name = getMTGAIndexName(lang, card.TitleId);
           cardData.cardNames[name] = index;
           if (lang === "jaJP") {
             cardData.cardNames[name.replace(/（[^）]*）/g, "")] = index;

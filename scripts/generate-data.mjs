@@ -39,7 +39,9 @@ function checkLegal(cardObject) {
 }
 
 function getArenaName(cardObject) {
-  if (cardObject.layout === "split") {
+  if (cardObject.keywords.includes("Aftermath")) {
+    return cardObject.card_faces.map((face) => face.name).join(" /// ");
+  } else if (cardObject.layout === "split") {
     return cardObject.name;
   } else if (cardObject.card_faces) {
     return cardObject.card_faces[0].name;

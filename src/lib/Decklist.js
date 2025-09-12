@@ -116,7 +116,6 @@ function getCardData(str, cardData) {
       cmc: 0,
       type: [],
       color: [],
-      arena: false,
       uri: null,
       image: null,
     };
@@ -292,17 +291,6 @@ export default class Decklist {
   }
   get sections() {
     return generateSections(this.sectionMap);
-  }
-  get arenaUnavailableCards() {
-    const unavailableCards = [];
-    for (const section of this.sections) {
-      for (const card of section.cards) {
-        if (!card.data.arena) {
-          unavailableCards.push(card);
-        }
-      }
-    }
-    return unavailableCards;
   }
   toArenaDecklist() {
     const texts = this.sections.map((section) => {

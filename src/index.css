@@ -140,11 +140,6 @@ h1 {
   pointer-events: none;
 }
 
-.card.arenaUnavailable .card-count {
-  background-color: rgba(77, 0, 0, 0.8);
-  box-shadow: 0 0 5px red;
-}
-
 footer {
   font-size: 80%;
 }

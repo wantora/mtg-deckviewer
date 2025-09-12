@@ -108,7 +108,6 @@ function oracleCardsParser(oracleCardsData) {
       cmc: cardObject.cmc,
       type: parseTypeLine(cardObject.type_line),
       color: getColor(cardObject),
-      arena: false,
       uri: cardObject.scryfall_uri,
       image: getImage(cardObject),
     };
@@ -256,7 +255,6 @@ async function getDatabaseFile() {
       const enUSname = getMTGAName("enUS", card.TitleId);
       if (Object.hasOwn(cardData.cardNames, enUSname)) {
         const index = cardData.cardNames[enUSname];
-        cardData.cards[index].arena = true;
 
         for (const lang of dbLocalizations.keys()) {
           const name = getMTGAName(lang, card.TitleId);

@@ -96,7 +96,12 @@ function getImage(cardObject) {
   }
 }
 
-function cardsParser({oracleCardsData, uniqueArtworkData}) {
+function cardsParser({
+  updatedAt,
+  oracleCardsData,
+  uniqueArtworkData,
+  overrideCardsData,
+}) {
   const cards = [];
   const cardNames = {};
 
@@ -116,6 +121,12 @@ function cardsParser({oracleCardsData, uniqueArtworkData}) {
     }
   }
 
+  for (const cardObject of overrideCardsData) {
+    const card = cards[cardNames[getIndexName(cardObject, "name")]];
+    card.uri = cardObject.scryfall_uri;
+    card.image = getImage(cardObject);
+  }
+
   for (const cardObject of uniqueArtworkData) {
     if (
       (cardObject.card_faces
@@ -129,7 +140,11 @@ function cardsParser({oracleCardsData, uniqueArtworkData}) {
     }
   }
 
-  return {cards, cardNames};
+  return {
+    updatedAt,
+    cards,
+    cardNames,
+  };
 }
 
 function httpGet(uri) {
@@ -159,7 +174,7 @@ function httpGet(uri) {
 }
 
 async function cacheHttpGet(uri) {
-  const cacheFile = join("cache", basename(uri));
+  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_"));
 
   try {
     return await readFile(cacheFile, {encoding: "utf8"});
@@ -235,16 +250,17 @@ async function getDatabaseFile() {
   const uniqueArtworkData = JSON.parse(
     await cacheHttpGet(uniqueArtworkInfo.download_uri)
   );
-
-  const cardData = cardsParser({oracleCardsData, uniqueArtworkData});
-  cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
-
+  const overrideCardsData = [];
   for (const url of OVERRIDE_CARDS) {
-    const cardObject = JSON.parse(await httpGet(url));
-    const card = cardData.cards[cardData.cardNames[cardObject.name]];
-    card.uri = cardObject.scryfall_uri;
-    card.image = getImage(cardObject);
+    overrideCardsData.push(JSON.parse(await cacheHttpGet(url)));
   }
+
+  const cardData = cardsParser({
+    updatedAt: Date.parse(oracleCardsInfo.updated_at),
+    oracleCardsData,
+    uniqueArtworkData,
+    overrideCardsData,
+  });
 
   const dbFile = await getDatabaseFile();
   if (dbFile) {

@@ -50,12 +50,12 @@ function getArenaName(cardObject) {
   }
 }
 
-function getIndexName(cardObject) {
+function getIndexName(cardObject, propName) {
   let name;
   if (cardObject.card_faces) {
-    name = cardObject.card_faces[0].name;
+    name = cardObject.card_faces[0][propName];
   } else {
-    name = cardObject.name;
+    name = cardObject[propName];
   }
 
   return removeDiacriticalMarks(name);
@@ -96,26 +96,37 @@ function getImage(cardObject) {
   }
 }
 
-function oracleCardsParser(oracleCardsData) {
+function cardsParser({oracleCardsData, uniqueArtworkData}) {
   const cards = [];
   const cardNames = {};
 
   for (const cardObject of oracleCardsData) {
-    if (!checkLegal(cardObject)) {
-      continue;
+    if (checkLegal(cardObject)) {
+      const card = {
+        name: getArenaName(cardObject),
+        cmc: cardObject.cmc,
+        type: parseTypeLine(cardObject.type_line),
+        color: getColor(cardObject),
+        uri: cardObject.scryfall_uri,
+        image: getImage(cardObject),
+      };
+      cards.push(card);
+      const index = cards.length - 1;
+      cardNames[getIndexName(cardObject, "name")] = index;
     }
+  }
 
-    const card = {
-      name: getArenaName(cardObject),
-      cmc: cardObject.cmc,
-      type: parseTypeLine(cardObject.type_line),
-      color: getColor(cardObject),
-      uri: cardObject.scryfall_uri,
-      image: getImage(cardObject),
-    };
-    cards.push(card);
-    const index = cards.length - 1;
-    cardNames[getIndexName(cardObject)] = index;
+  for (const cardObject of uniqueArtworkData) {
+    if (
+      (cardObject.card_faces
+        ? cardObject.card_faces[0].printed_name
+        : cardObject.printed_name) &&
+      cardObject.lang === "en" &&
+      checkLegal(cardObject)
+    ) {
+      cardNames[getIndexName(cardObject, "printed_name")] =
+        cardNames[getIndexName(cardObject, "name")];
+    }
   }
 
   return {cards, cardNames};
@@ -218,8 +229,14 @@ async function getDatabaseFile() {
   const oracleCardsData = JSON.parse(
     await cacheHttpGet(oracleCardsInfo.download_uri)
   );
+  const uniqueArtworkInfo = JSON.parse(
+    await httpGet("https://api.scryfall.com/bulk-data/unique-artwork")
+  );
+  const uniqueArtworkData = JSON.parse(
+    await cacheHttpGet(uniqueArtworkInfo.download_uri)
+  );
 
-  const cardData = oracleCardsParser(oracleCardsData);
+  const cardData = cardsParser({oracleCardsData, uniqueArtworkData});
   cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
 
   for (const url of OVERRIDE_CARDS) {

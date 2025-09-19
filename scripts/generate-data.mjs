@@ -286,7 +286,11 @@ async function getDatabaseFile() {
         const index = cardData.cardNames[enUSname];
 
         for (const lang of dbLocalizations.keys()) {
-          const name = getMTGAIndexName(lang, card.TitleId);
+          let name = getMTGAIndexName(lang, card.TitleId);
+          if (enUSname === "Hustle") {
+            name = name.replace(/ \/\/ .*$/, "");
+          }
+
           cardData.cardNames[name] = index;
           if (lang === "jaJP") {
             cardData.cardNames[name.replace(/（[^）]*）/g, "")] = index;

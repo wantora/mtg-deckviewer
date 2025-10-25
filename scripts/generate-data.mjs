@@ -1,15 +1,60 @@
-import {readFile, mkdir, writeFile, readdir} from "node:fs/promises";
+import {mkdir, writeFile, readdir, stat} from "node:fs/promises";
+import {createWriteStream, createReadStream} from "node:fs";
 import {join, basename, dirname} from "node:path";
+import {PassThrough} from "node:stream";
+import {pipeline} from "node:stream/promises";
+import {createInterface} from "node:readline";
 import https from "node:https";
 import Database from "better-sqlite3";
 
-const OVERRIDE_CARDS = [
-  "https://api.scryfall.com/cards/thb/250",
-  "https://api.scryfall.com/cards/thb/251",
-  "https://api.scryfall.com/cards/thb/252",
-  "https://api.scryfall.com/cards/thb/253",
-  "https://api.scryfall.com/cards/thb/254",
-];
+const OVERRIDE_CARDS = new Set([
+  "thb/250",
+  "thb/251",
+  "thb/252",
+  "thb/253",
+  "thb/254",
+]);
+
+const HTTP_HEADERS = {
+  "User-Agent": "mtg-deckviewer/1.0",
+  Accept: "*/*",
+};
+
+async function httpStreamGet(uri) {
+  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_"));
+
+  try {
+    const cacheStat = await stat(cacheFile);
+    if (Date.now() - cacheStat.mtimeMs < 86400000) {
+      return createReadStream(cacheFile, {encoding: "utf8"});
+    }
+  } catch {
+    // pass
+  }
+
+  await mkdir(dirname(cacheFile), {recursive: true});
+  return new Promise((resolve, reject) => {
+    https.get(uri, {headers: HTTP_HEADERS}, async (res) => {
+      res.setEncoding("utf8");
+      res.pipe(createWriteStream(cacheFile));
+      resolve(res.pipe(new PassThrough()));
+    });
+  });
+}
+
+async function parseJSONStream(stream, callback) {
+  return pipeline([
+    createInterface(stream),
+    async function* (source, {signal}) {
+      for await (const chunk of source) {
+        if (chunk.startsWith("{")) {
+          callback(JSON.parse(chunk.replace(/,$/, "")));
+        }
+      }
+      yield "";
+    },
+  ]);
+}
 
 function removeDiacriticalMarks(str) {
   return str
@@ -18,174 +63,142 @@ function removeDiacriticalMarks(str) {
     .normalize("NFC");
 }
 
-const TODAY = new Date().toISOString().slice(0, 10);
+class CardData {
+  static #TODAY = new Date().toISOString().slice(0, 10);
+  #cardObject;
 
-function checkLegal(cardObject) {
-  for (const legality of Object.values(cardObject.legalities)) {
-    if (legality !== "not_legal") {
-      return true;
+  constructor(cardObject) {
+    this.#cardObject = cardObject;
+  }
+  checkLegal() {
+    return (
+      Object.values(this.#cardObject.legalities).some(
+        (value) => value !== "not_legal"
+      ) ||
+      (this.#cardObject.released_at > CardData.#TODAY &&
+        this.#cardObject.set_type !== "memorabilia" &&
+        this.#cardObject.set_type !== "token")
+    );
+  }
+
+  get object() {
+    return this.#cardObject;
+  }
+  get arenaName() {
+    if (this.#cardObject.keywords.includes("Aftermath")) {
+      return this.#cardObject.card_faces.map((face) => face.name).join(" /// ");
+    } else if (this.#cardObject.layout === "split") {
+      return this.#cardObject.name;
+    } else if (this.#cardObject.card_faces) {
+      return this.#cardObject.card_faces[0].name;
+    } else {
+      return this.#cardObject.name;
     }
   }
-
-  if (
-    cardObject.released_at > TODAY &&
-    cardObject.set_type !== "memorabilia" &&
-    cardObject.set_type !== "token"
-  ) {
-    return true;
+  get indexName() {
+    return this.#getIndexName("name");
   }
-
-  return false;
-}
-
-function getArenaName(cardObject) {
-  if (cardObject.keywords.includes("Aftermath")) {
-    return cardObject.card_faces.map((face) => face.name).join(" /// ");
-  } else if (cardObject.layout === "split") {
-    return cardObject.name;
-  } else if (cardObject.card_faces) {
-    return cardObject.card_faces[0].name;
-  } else {
-    return cardObject.name;
+  get printedIndexName() {
+    return this.#getIndexName("printed_name");
   }
-}
-
-function getIndexName(cardObject, propName) {
-  let name;
-  if (cardObject.card_faces) {
-    name = cardObject.card_faces[0][propName];
-  } else {
-    name = cardObject[propName];
+  get typeLine() {
+    return this.#cardObject.type_line
+      .match(/^[\w ]+/)[0]
+      .trimEnd()
+      .split(/ +/);
   }
-
-  return removeDiacriticalMarks(name);
-}
-
-function parseTypeLine(typeLine) {
-  return typeLine
-    .match(/^[\w ]+/)[0]
-    .trimEnd()
-    .split(/ +/);
-}
-
-function getColor(cardObject) {
-  if (parseTypeLine(cardObject.type_line).includes("Land")) {
-    return cardObject.color_identity;
-  } else {
-    if (cardObject.colors) {
-      return cardObject.colors;
-    } else if (cardObject.card_faces) {
-      return cardObject.card_faces[0].colors;
+  get color() {
+    if (this.typeLine.includes("Land")) {
+      return this.#cardObject.color_identity;
+    } else {
+      if (this.#cardObject.colors) {
+        return this.#cardObject.colors;
+      } else if (this.#cardObject.card_faces) {
+        return this.#cardObject.card_faces[0].colors;
+      }
     }
-  }
-  return null;
-}
-
-function getImage(cardObject) {
-  let imageUris = null;
-  if (cardObject.image_uris) {
-    imageUris = cardObject.image_uris;
-  } else if (cardObject.card_faces && cardObject.card_faces[0].image_uris) {
-    imageUris = cardObject.card_faces[0].image_uris;
-  }
-
-  if (imageUris) {
-    return imageUris.normal;
-  } else {
     return null;
   }
+  get image() {
+    let imageUris = null;
+    if (this.#cardObject.image_uris) {
+      imageUris = this.#cardObject.image_uris;
+    } else if (
+      this.#cardObject.card_faces &&
+      this.#cardObject.card_faces[0].image_uris
+    ) {
+      imageUris = this.#cardObject.card_faces[0].image_uris;
+    }
+
+    if (imageUris) {
+      return imageUris.normal;
+    } else {
+      return null;
+    }
+  }
+
+  #getIndexName(propName) {
+    let name;
+    if (this.#cardObject.card_faces) {
+      name = this.#cardObject.card_faces[0][propName];
+    } else {
+      name = this.#cardObject[propName];
+    }
+
+    return removeDiacriticalMarks(name);
+  }
 }
 
-function cardsParser({
-  updatedAt,
-  oracleCardsData,
-  uniqueArtworkData,
-  overrideCardsData,
-}) {
+async function cardsParser({oracleCards, allCards}) {
   const cards = [];
   const cardNames = {};
 
-  for (const cardObject of oracleCardsData) {
-    if (checkLegal(cardObject)) {
+  await parseJSONStream(oracleCards, (entry) => {
+    const cardData = new CardData(entry);
+    if (cardData.checkLegal()) {
       const card = {
-        name: getArenaName(cardObject),
-        cmc: cardObject.cmc,
-        type: parseTypeLine(cardObject.type_line),
-        color: getColor(cardObject),
-        uri: cardObject.scryfall_uri,
-        image: getImage(cardObject),
+        name: cardData.arenaName,
+        cmc: cardData.object.cmc,
+        type: cardData.typeLine,
+        color: cardData.color,
+        uri: cardData.object.scryfall_uri,
+        image: cardData.image,
       };
       cards.push(card);
       const index = cards.length - 1;
-      cardNames[getIndexName(cardObject, "name")] = index;
+      cardNames[cardData.indexName] = index;
     }
-  }
+  });
 
-  for (const cardObject of overrideCardsData) {
-    const card = cards[cardNames[getIndexName(cardObject, "name")]];
-    card.uri = cardObject.scryfall_uri;
-    card.image = getImage(cardObject);
-  }
-
-  for (const cardObject of uniqueArtworkData) {
+  await parseJSONStream(allCards, (entry) => {
+    const cardData = new CardData(entry);
     if (
-      (cardObject.card_faces
-        ? cardObject.card_faces[0].printed_name
-        : cardObject.printed_name) &&
-      cardObject.lang === "en" &&
-      checkLegal(cardObject)
+      cardData.object.lang === "en" &&
+      OVERRIDE_CARDS.has(
+        cardData.object.set + "/" + cardData.object.collector_number
+      )
     ) {
-      cardNames[getIndexName(cardObject, "printed_name")] =
-        cardNames[getIndexName(cardObject, "name")];
+      const card = cards[cardNames[cardData.indexName]];
+      card.uri = cardData.object.scryfall_uri;
+      card.image = cardData.image;
+    } else if (
+      cardData.object.lang === "en" &&
+      (cardData.object.card_faces
+        ? cardData.object.card_faces[0].printed_name
+        : cardData.object.printed_name) &&
+      cardData.checkLegal()
+    ) {
+      const key = cardData.printedIndexName;
+      if (!cardNames[key]) {
+        cardNames[key] = cardNames[cardData.indexName];
+      }
     }
-  }
+  });
 
   return {
-    updatedAt,
     cards,
     cardNames,
   };
-}
-
-function httpGet(uri) {
-  return new Promise((resolve, reject) => {
-    https.get(
-      uri,
-      {
-        headers: {
-          "User-Agent": "mtg-deckviewer/1.0",
-          Accept: "*/*",
-        },
-      },
-      (res) => {
-        res.setEncoding("utf8");
-        let rawData = "";
-        res.on("data", (chunk) => {
-          rawData += chunk;
-        });
-        res.on("end", () => {
-          setTimeout(() => {
-            resolve(rawData);
-          }, 100);
-        });
-      }
-    );
-  });
-}
-
-async function cacheHttpGet(uri) {
-  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_"));
-
-  try {
-    return await readFile(cacheFile, {encoding: "utf8"});
-    // eslint-disable-next-line no-unused-vars
-  } catch (error) {
-    const data = await httpGet(uri);
-
-    await mkdir(dirname(cacheFile), {recursive: true});
-    await writeFile(cacheFile, data);
-    return data;
-  }
 }
 
 async function getDatabaseFile() {
@@ -208,8 +221,7 @@ async function getDatabaseFile() {
     try {
       files = (await readdir(dir)).map((file) => join(dir, file));
       break;
-      // eslint-disable-next-line no-unused-vars
-    } catch (error) {
+    } catch {
       // pass
     }
   }
@@ -238,29 +250,18 @@ async function getDatabaseFile() {
 }
 
 (async () => {
-  const oracleCardsInfo = JSON.parse(
-    await httpGet("https://api.scryfall.com/bulk-data/oracle-cards")
-  );
-  const oracleCardsData = JSON.parse(
-    await cacheHttpGet(oracleCardsInfo.download_uri)
-  );
-  const uniqueArtworkInfo = JSON.parse(
-    await httpGet("https://api.scryfall.com/bulk-data/unique-artwork")
-  );
-  const uniqueArtworkData = JSON.parse(
-    await cacheHttpGet(uniqueArtworkInfo.download_uri)
-  );
-  const overrideCardsData = [];
-  for (const url of OVERRIDE_CARDS) {
-    overrideCardsData.push(JSON.parse(await cacheHttpGet(url)));
-  }
+  const bulkData = await (
+    await fetch("https://api.scryfall.com/bulk-data", {headers: HTTP_HEADERS})
+  ).json();
 
-  const cardData = cardsParser({
-    updatedAt: Date.parse(oracleCardsInfo.updated_at),
-    oracleCardsData,
-    uniqueArtworkData,
-    overrideCardsData,
+  const oracleCardsInfo = bulkData.data.find((o) => o.type === "oracle_cards");
+  const cardData = await cardsParser({
+    oracleCards: await httpStreamGet(oracleCardsInfo.download_uri),
+    allCards: await httpStreamGet(
+      bulkData.data.find((o) => o.type === "all_cards").download_uri
+    ),
   });
+  cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
 
   const dbFile = await getDatabaseFile();
   if (dbFile) {
@@ -291,9 +292,14 @@ async function getDatabaseFile() {
             name = name.replace(/ \/\/ .*$/, "");
           }
 
-          cardData.cardNames[name] = index;
+          if (!cardData.cardNames[name]) {
+            cardData.cardNames[name] = index;
+          }
           if (lang === "jaJP") {
-            cardData.cardNames[name.replace(/（[^）]*）/g, "")] = index;
+            const jaName = name.replace(/（[^）]*）/g, "");
+            if (!cardData.cardNames[jaName]) {
+              cardData.cardNames[jaName] = index;
+            }
           }
         }
       }

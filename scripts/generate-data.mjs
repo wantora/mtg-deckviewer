@@ -160,11 +160,11 @@ class CardData {
   }
 }
 
-async function cardsParser({oracleCards, allCards}) {
+async function cardsParser({oracleCardsUri, allCardsUri}) {
   const cards = [];
   const cardNames = {};
 
-  await parseJSONStream(oracleCards, (entry) => {
+  await parseJSONStream(await httpStreamGet(oracleCardsUri), (entry) => {
     const cardData = new CardData(entry);
     if (cardData.checkLegal()) {
       const card = {
@@ -181,7 +181,7 @@ async function cardsParser({oracleCards, allCards}) {
     }
   });
 
-  await parseJSONStream(allCards, (entry) => {
+  await parseJSONStream(await httpStreamGet(allCardsUri), (entry) => {
     const cardData = new CardData(entry);
     if (
       cardData.object.lang === "en" &&
@@ -212,73 +212,65 @@ async function cardsParser({oracleCards, allCards}) {
   };
 }
 
-async function getDatabaseFile() {
-  const dirs = [
-    join(
-      process.env["ProgramFiles"],
-      "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
-    ),
-    join(
-      process.env["ProgramFiles(x86)"],
-      "Steam/steamapps/common/MTGA/MTGA_Data/Downloads/Raw"
-    ),
-  ];
+class MTGADB {
+  static async open() {
+    const dirs = [
+      join(
+        process.env["ProgramFiles"],
+        "Wizards of the Coast/MTGA/MTGA_Data/Downloads/Raw"
+      ),
+      join(
+        process.env["ProgramFiles(x86)"],
+        "Steam/steamapps/common/MTGA/MTGA_Data/Downloads/Raw"
+      ),
+    ];
 
-  let dbFile = null;
-  let dbVersion = Infinity;
-  let files;
+    let dbFile = null;
+    let dbVersion = Infinity;
+    let files;
 
-  for (const dir of dirs) {
-    try {
-      files = (await readdir(dir)).map((file) => join(dir, file));
-      break;
-    } catch {
-      // pass
-    }
-  }
-
-  try {
-    for (const file of files) {
-      if (basename(file).match(/^Raw_CardDatabase_.*\.mtga$/)) {
-        const db = new Database(file, {readonly: true});
-        const row = db
-          .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
-          .get();
-        db.close();
-
-        if (row.Version < dbVersion) {
-          dbFile = file;
-          dbVersion = row.Version;
-        }
+    for (const dir of dirs) {
+      try {
+        files = (await readdir(dir)).map((file) => join(dir, file));
+        break;
+      } catch {
+        // pass
       }
     }
-  } catch (error) {
-    console.error(error);
-    return null;
+
+    try {
+      for (const file of files) {
+        if (basename(file).match(/^Raw_CardDatabase_.*\.mtga$/)) {
+          const db = new Database(file, {readonly: true});
+          const row = db
+            .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
+            .get();
+          db.close();
+
+          if (row.Version < dbVersion) {
+            dbFile = file;
+            dbVersion = row.Version;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+
+    return new MTGADB(dbFile);
   }
 
-  return dbFile;
-}
+  #dbCards;
+  #dbLocalizations;
 
-(async () => {
-  const bulkData = await (
-    await fetch("https://api.scryfall.com/bulk-data", {headers: HTTP_HEADERS})
-  ).json();
-
-  const oracleCardsInfo = bulkData.data.find((o) => o.type === "oracle_cards");
-  const cardData = await cardsParser({
-    oracleCards: await httpStreamGet(oracleCardsInfo.download_uri),
-    allCards: await httpStreamGet(
-      bulkData.data.find((o) => o.type === "all_cards").download_uri
-    ),
-  });
-  cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
-
-  const dbFile = await getDatabaseFile();
-  if (dbFile) {
+  constructor(dbFile) {
     const db = new Database(dbFile, {readonly: true});
-    const dbCards = db.prepare("SELECT TitleId FROM Cards WHERE TitleId != 0");
-    const dbLocalizations = new Map(
+
+    this.#dbCards = db.prepare(
+      "SELECT TitleId, InterchangeableTitleId FROM Cards WHERE TitleId != 0"
+    );
+    this.#dbLocalizations = new Map(
       ["deDE", "enUS", "esES", "frFR", "itIT", "jaJP", "koKR", "ptBR"].map(
         (lang) => [
           lang,
@@ -288,33 +280,63 @@ async function getDatabaseFile() {
         ]
       )
     );
-    const getMTGAIndexName = (lang, titleId) => {
-      return removeDiacriticalMarks(dbLocalizations.get(lang).get(titleId).Loc);
-    };
-
-    for (const card of dbCards.iterate()) {
-      const enUSname = getMTGAIndexName("enUS", card.TitleId);
-      if (Object.hasOwn(cardData.cardNames, enUSname)) {
-        const index = cardData.cardNames[enUSname];
-
-        for (const lang of dbLocalizations.keys()) {
-          let name = getMTGAIndexName(lang, card.TitleId);
-          if (enUSname === "Hustle") {
-            name = name.replace(/ \/\/ .*$/, "");
-          }
-
-          if (!cardData.cardNames[name]) {
-            cardData.cardNames[name] = index;
-          }
-          if (lang === "jaJP") {
-            const jaName = name.replace(/（[^）]*）/g, "");
-            if (!cardData.cardNames[jaName]) {
-              cardData.cardNames[jaName] = index;
-            }
+  }
+  updateCardData(cardData) {
+    for (const card of this.#dbCards.iterate()) {
+      for (const titleId of [card.TitleId, card.InterchangeableTitleId]) {
+        if (titleId !== 0) {
+          const enUSname = this.#getIndexName("enUS", titleId);
+          if (Object.hasOwn(cardData.cardNames, enUSname)) {
+            this.#update(cardData, titleId, enUSname);
           }
         }
       }
     }
+  }
+  #update(cardData, titleId, enUSname) {
+    const index = cardData.cardNames[enUSname];
+
+    for (const lang of this.#dbLocalizations.keys()) {
+      let name = this.#getIndexName(lang, titleId);
+
+      // fix typo
+      if (enUSname === "Hustle") {
+        name = name.replace(/ \/\/ .*$/, "");
+      }
+
+      if (!cardData.cardNames[name]) {
+        cardData.cardNames[name] = index;
+      }
+      if (lang === "jaJP") {
+        const jaName = name.replace(/（[^）]*）/g, "");
+        if (!cardData.cardNames[jaName]) {
+          cardData.cardNames[jaName] = index;
+        }
+      }
+    }
+  }
+  #getIndexName(lang, titleId) {
+    return removeDiacriticalMarks(
+      this.#dbLocalizations.get(lang).get(titleId).Loc
+    );
+  }
+}
+
+(async () => {
+  const bulkData = await (
+    await fetch("https://api.scryfall.com/bulk-data", {headers: HTTP_HEADERS})
+  ).json();
+
+  const oracleCardsInfo = bulkData.data.find((o) => o.type === "oracle_cards");
+  const cardData = await cardsParser({
+    oracleCardsUri: oracleCardsInfo.download_uri,
+    allCardsUri: bulkData.data.find((o) => o.type === "all_cards").download_uri,
+  });
+  cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
+
+  const mtgadb = await MTGADB.open();
+  if (mtgadb) {
+    mtgadb.updateCardData(cardData);
   } else {
     console.info("MTGA database not found");
   }

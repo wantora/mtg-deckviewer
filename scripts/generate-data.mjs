@@ -4,6 +4,7 @@ import {join, basename, dirname} from "node:path";
 import {PassThrough} from "node:stream";
 import {pipeline} from "node:stream/promises";
 import {createInterface} from "node:readline";
+import {createGunzip, createGzip} from "node:zlib";
 import https from "node:https";
 import Database from "better-sqlite3";
 
@@ -18,15 +19,18 @@ const OVERRIDE_CARDS = new Set([
 const HTTP_HEADERS = {
   "User-Agent": "mtg-deckviewer/1.0",
   Accept: "*/*",
+  "Accept-Encoding": "gzip",
 };
 
 async function httpStreamGet(uri) {
-  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_"));
+  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_") + ".gz");
 
   try {
     const cacheStat = await stat(cacheFile);
     if (Date.now() - cacheStat.mtimeMs < 86400000) {
-      return createReadStream(cacheFile, {encoding: "utf8"});
+      const stream = createReadStream(cacheFile).pipe(createGunzip());
+      stream.setEncoding("utf8");
+      return stream;
     }
   } catch {
     // pass
@@ -35,16 +39,23 @@ async function httpStreamGet(uri) {
   await mkdir(dirname(cacheFile), {recursive: true});
   return new Promise((resolve, reject) => {
     https.get(uri, {headers: HTTP_HEADERS}, async (res) => {
-      res.setEncoding("utf8");
-      res.pipe(createWriteStream(cacheFile));
-      resolve(res.pipe(new PassThrough()));
+      let stream;
+      if (res.headers["content-encoding"] === "gzip") {
+        res.pipe(createWriteStream(cacheFile));
+        stream = res.pipe(createGunzip());
+      } else {
+        res.pipe(createGzip()).pipe(createWriteStream(cacheFile));
+        stream = res.pipe(new PassThrough());
+      }
+      stream.setEncoding("utf8");
+      resolve(stream);
     });
   });
 }
 
 async function parseJSONStream(stream, callback) {
   return pipeline([
-    createInterface(stream),
+    createInterface({input: stream}),
     async function* (source, {signal}) {
       for await (const chunk of source) {
         if (chunk.startsWith("{")) {

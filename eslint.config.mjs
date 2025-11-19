@@ -1,15 +1,11 @@
 import js from "@eslint/js";
 import globals from "globals";
-import prettier from "eslint-plugin-prettier";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   js.configs.recommended,
   eslintConfigPrettier,
   {
-    plugins: {
-      prettier,
-    },
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -70,15 +66,6 @@ export default [
 
       // Layout & Formatting
       "unicode-bom": "error",
-
-      // prettier
-      "prettier/prettier": [
-        "error",
-        {
-          bracketSpacing: false,
-          trailingComma: "es5",
-        },
-      ],
     },
   },
   {

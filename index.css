@@ -131,7 +131,7 @@ h1 {
   right: calc(var(--card-width) * 0.09);
   top: calc(var(--card-height) * 0.12);
   padding: 0 0.5ch;
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgba(0, 0, 0, 0.8);
   border-radius: 5px;
   color: white;
   font-size: 17px;

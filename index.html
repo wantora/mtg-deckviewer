@@ -1,82 +1,136 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>MTG Deckviewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="index.css" rel="stylesheet">
-  <script type="module" src="index.js"></script>
-</head>
-<body>
-  <h1>MTG Deckviewer</h1>
+  <head>
+    <meta charset="utf-8" />
+    <title>MTG Deckviewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="index.css" rel="stylesheet" />
+    <script type="module" src="index.js"></script>
+  </head>
+  <body>
+    <h1>MTG Deckviewer</h1>
 
-  <div id="app">
-    <template v-if="true">
-      <p class="options" v-if="decklistTexts.length > 1">
-        <label><input type="checkbox" v-model="compareMode">Compare mode</label>
+    <div id="app">
+      <template v-if="true">
+        <p class="options" v-if="decklistTexts.length > 1">
+          <label
+            ><input type="checkbox" v-model="compareMode" />Compare mode</label
+          >
+        </p>
+
+        <p>
+          Decklist
+          <a
+            v-if="decklistTexts.some((text) => text.trim() !== '')"
+            :href="getPermalink()"
+            >(permalink)</a
+          >
+        </p>
+
+        <div class="decklistTexts">
+          <div
+            class="decklistText"
+            v-for="(decklistText, index) in decklistTexts"
+          >
+            <p>
+              <textarea
+                :value="decklistText"
+                @input="event => decklistTexts[index] = event.target.value"
+              ></textarea>
+            </p>
+
+            <p class="decklistButtons">
+              <copy-button
+                :text="decklists[index].toArenaDecklist()"
+                :message="'Copied!'"
+                >Copy Decklist (Arena format)</copy-button
+              >
+              <button
+                v-if="decklistTexts.length > 1"
+                @click="decklistTexts.splice(index, 1)"
+              >
+                ×
+              </button>
+            </p>
+          </div>
+          <div class="decklistText appendButton">
+            <button @click="decklistTexts.push('')">＋</button>
+          </div>
+        </div>
+
+        <div :class="{decklists: true, multi: sectionsList.length > 1}">
+          <template v-for="(data, index) in sectionsList">
+            <h2
+              class="deck-name"
+              v-if="sectionsList.length > 1"
+              :style="{gridColumn: 2 + index * 2, gridRow: 1}"
+            >
+              {{ data.name }}
+            </h2>
+
+            <template v-for="section in data.sections">
+              <h3
+                class="section-name"
+                :style="{gridColumn: 1 + index * 2, gridRowStart: 2 + getSectionIndex(section.name) * 2, gridRowEnd: 4 + getSectionIndex(section.name) * 2}"
+              >
+                {{ section.name }}
+              </h3>
+              <div
+                :class="{cards: true, diff: compareMode && index > 0}"
+                :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name) * 2}"
+              >
+                <a
+                  class="card"
+                  target="_blank"
+                  v-for="card in section.cards"
+                  :href="card.data.uri"
+                >
+                  {{ card.data.name }}
+                  <span
+                    class="card-image"
+                    :style="getBackgroundImage(card.data.image)"
+                  ></span>
+                  <span class="card-count">x{{ card.count }}</span>
+                </a>
+              </div>
+              <div
+                class="type-count"
+                :style="{gridColumn: 2 + index * 2, gridRow: 3 + getSectionIndex(section.name) * 2, display: section.name === 'Deck' ? '' : 'none'}"
+              >
+                Land {{ section.typeCount.land }} / Creature {{
+                section.typeCount.creature }} / Spell {{ section.typeCount.spell
+                }}
+              </div>
+            </template>
+          </template>
+        </div>
+
+        <teleport to="#database-updated"
+          >{{ cardData ? new Date(cardData.updatedAt).toLocaleString() : ""
+          }}</teleport
+        >
+      </template>
+    </div>
+
+    <hr />
+
+    <footer>
+      <p>Database updated: <span id="database-updated"></span></p>
+
+      <p>
+        カードの情報と画像は
+        <a href="https://scryfall.com/">Scryfall</a> を利用しています。
+      </p>
+      <p>
+        このサイトはファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。ウィザーズ社の認可/許諾は得ていません。題材の一部に、ウィザーズ・オブ・ザ・コースト社の財産を含んでいます。©Wizards
+        of the Coast LLC.
       </p>
 
-      <p>Decklist <a v-if="decklistTexts.some((text) => text.trim() !== '')" :href="getPermalink()">(permalink)</a></p>
-
-      <div class="decklistTexts">
-        <div class="decklistText" v-for="(decklistText, index) in decklistTexts">
-          <p><textarea
-            :value="decklistText"
-            @input="event => decklistTexts[index] = event.target.value"></textarea></p>
-
-          <p class="decklistButtons">
-            <copy-button
-              :text="decklists[index].toArenaDecklist()"
-              :message="'Copied!'" >Copy Decklist (Arena format)</copy-button>
-            <button v-if="decklistTexts.length > 1" @click="decklistTexts.splice(index, 1)">×</button>
-          </p>
-        </div>
-        <div class="decklistText appendButton">
-          <button @click="decklistTexts.push('')">＋</button>
-        </div>
-      </div>
-
-      <div :class="{decklists: true, multi: sectionsList.length > 1}">
-        <template v-for="(data, index) in sectionsList">
-          <h2 class="deck-name" v-if="sectionsList.length > 1" :style="{gridColumn: 2 + index * 2, gridRow: 1}">
-            {{ data.name }}
-          </h2>
-
-          <template v-for="section in data.sections">
-            <h3 class="section-name" :style="{gridColumn: 1 + index * 2, gridRowStart: 2 + getSectionIndex(section.name) * 2, gridRowEnd: 4 + getSectionIndex(section.name) * 2}">{{ section.name }}</h3>
-            <div :class="{cards: true, diff: compareMode && index > 0}" :style="{gridColumn: 2 + index * 2, gridRow: 2 + getSectionIndex(section.name) * 2}">
-              <a class="card" target="_blank" v-for="card in section.cards" :href="card.data.uri">
-                {{ card.data.name }}
-                <span class="card-image" :style="getBackgroundImage(card.data.image)"></span>
-                <span class="card-count">x{{ card.count }}</span>
-              </a>
-            </div>
-            <div class="type-count" :style="{gridColumn: 2 + index * 2, gridRow: 3 + getSectionIndex(section.name) * 2, display: section.name === 'Deck' ? '' : 'none'}">
-              Land {{ section.typeCount.land }} /
-              Creature {{ section.typeCount.creature }} /
-              Spell {{ section.typeCount.spell }}
-            </div>
-          </template>
-        </template>
-      </div>
-
-      <teleport to="#database-updated">{{ cardData ? new Date(cardData.updatedAt).toLocaleString() : "" }}</teleport>
-    </template>
-  </div>
-
-  <hr>
-
-  <footer>
-    <p>Database updated: <span id="database-updated"></span></p>
-
-    <p>カードの情報と画像は <a href="https://scryfall.com/">Scryfall</a> を利用しています。</p>
-    <p>このサイトはファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。ウィザーズ社の認可/許諾は得ていません。題材の一部に、ウィザーズ・オブ・ザ・コースト社の財産を含んでいます。©Wizards of the Coast LLC.</p>
-
-    <address>
-      <strong>wantora</strong>
-      / <a href="https://github.com/wantora">github</a>
-      / <a href="https://github.com/wantora/mtg-deckviewer">mtg-deckviewer</a>
-    </address>
-  </footer>
-</body>
+      <address>
+        <strong>wantora</strong>
+        / <a href="https://github.com/wantora">github</a> /
+        <a href="https://github.com/wantora/mtg-deckviewer">mtg-deckviewer</a>
+      </address>
+    </footer>
+  </body>
 </html>

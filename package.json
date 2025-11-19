@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "deploy": "npm run generate-data && gh-pages -d ./src",
+    "deploy": "node --run generate-data && gh-pages -d ./src",
     "generate-data": "node ./scripts/generate-data.mjs",
     "format": "prettier --write . && eslint --fix .",
     "lint": "prettier --check . && eslint .",

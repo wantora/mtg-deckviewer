@@ -34,7 +34,7 @@ export default [
       "func-name-matching": "error",
       "guard-for-in": "error",
       "no-caller": "error",
-      "no-console": ["warn", {allow: ["info", "warn", "error"]}],
+      "no-console": ["warn", {allow: ["info", "warn", "error", "debug"]}],
       "no-div-regex": "error",
       "no-empty-function": "error",
       "no-eval": "error",

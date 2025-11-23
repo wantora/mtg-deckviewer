@@ -7,8 +7,8 @@
   "scripts": {
     "deploy": "node --run generate-data && gh-pages -d ./src",
     "generate-data": "node ./scripts/generate-data.mjs",
-    "format": "prettier --write . && eslint --fix .",
-    "lint": "prettier --check . && eslint .",
+    "format": "eslint --fix . && prettier --write .",
+    "lint": "eslint . && prettier --check .",
     "start": "http-server ./src -c-1"
   },
   "author": "wantora <wantora@gmail.com>",

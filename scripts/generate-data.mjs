@@ -6,7 +6,7 @@ import {pipeline} from "node:stream/promises";
 import {createInterface} from "node:readline";
 import {createGunzip, createGzip} from "node:zlib";
 import https from "node:https";
-import Database from "better-sqlite3";
+import {DatabaseSync} from "node:sqlite";
 
 const OVERRIDE_CARDS = new Set([
   "thb/250",
@@ -241,7 +241,7 @@ class MTGADB {
     try {
       for (const file of files) {
         if (basename(file).match(/^Raw_CardDatabase_.*\.mtga$/)) {
-          const db = new Database(file, {readonly: true});
+          const db = new DatabaseSync(file, {readOnly: true});
           const row = db
             .prepare("SELECT Version FROM Versions WHERE Type = 'GRP'")
             .get();
@@ -265,7 +265,7 @@ class MTGADB {
   #dbLocalizations;
 
   constructor(dbFile) {
-    const db = new Database(dbFile, {readonly: true});
+    const db = new DatabaseSync(dbFile, {readOnly: true});
 
     this.#dbCards = db.prepare(
       "SELECT TitleId, InterchangeableTitleId FROM Cards WHERE TitleId != 0"

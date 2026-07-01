@@ -1,10 +1,9 @@
 import {mkdir, writeFile, readdir, stat} from "node:fs/promises";
 import {createWriteStream, createReadStream} from "node:fs";
 import {join, basename, dirname} from "node:path";
-import {PassThrough} from "node:stream";
 import {pipeline} from "node:stream/promises";
 import {createInterface} from "node:readline";
-import {createGunzip, createGzip} from "node:zlib";
+import {createGunzip} from "node:zlib";
 import https from "node:https";
 import {DatabaseSync} from "node:sqlite";
 
@@ -19,11 +18,10 @@ const OVERRIDE_CARDS = new Set([
 const HTTP_HEADERS = {
   "User-Agent": "mtg-deckviewer/1.0",
   Accept: "*/*",
-  "Accept-Encoding": "gzip",
 };
 
-async function httpStreamGet(uri) {
-  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_") + ".gz");
+async function httpGzGet(uri) {
+  const cacheFile = join("cache", uri.replace(/[^\w%&+\-.=@]+/g, "_"));
 
   try {
     const cacheStat = await stat(cacheFile);
@@ -40,26 +38,21 @@ async function httpStreamGet(uri) {
   return new Promise((resolve, reject) => {
     https.get(uri, {headers: HTTP_HEADERS}, async (res) => {
       let stream;
-      if (res.headers["content-encoding"] === "gzip") {
-        res.pipe(createWriteStream(cacheFile));
-        stream = res.pipe(createGunzip());
-      } else {
-        res.pipe(createGzip()).pipe(createWriteStream(cacheFile));
-        stream = res.pipe(new PassThrough());
-      }
+      res.pipe(createWriteStream(cacheFile));
+      stream = res.pipe(createGunzip());
       stream.setEncoding("utf8");
       resolve(stream);
     });
   });
 }
 
-async function parseJSONStream(stream, callback) {
+async function parseJSONLStream(stream, callback) {
   return pipeline([
     createInterface({input: stream}),
     async function* (source, {signal}) {
-      for await (const chunk of source) {
-        if (chunk.startsWith("{")) {
-          callback(JSON.parse(chunk.replace(/,$/, "")));
+      for await (const line of source) {
+        if (line !== "") {
+          callback(JSON.parse(line));
         }
       }
       yield "";
@@ -164,7 +157,7 @@ async function cardsParser({oracleCardsUri, allCardsUri}) {
   const cards = [];
   const cardNames = {};
 
-  await parseJSONStream(await httpStreamGet(oracleCardsUri), (entry) => {
+  await parseJSONLStream(await httpGzGet(oracleCardsUri), (entry) => {
     const cardData = new CardData(entry);
     if (cardData.checkLegal()) {
       const card = {
@@ -181,7 +174,7 @@ async function cardsParser({oracleCardsUri, allCardsUri}) {
     }
   });
 
-  await parseJSONStream(await httpStreamGet(allCardsUri), (entry) => {
+  await parseJSONLStream(await httpGzGet(allCardsUri), (entry) => {
     const cardData = new CardData(entry);
     if (
       cardData.object.lang === "en" &&
@@ -329,8 +322,9 @@ class MTGADB {
 
   const oracleCardsInfo = bulkData.data.find((o) => o.type === "oracle_cards");
   const cardData = await cardsParser({
-    oracleCardsUri: oracleCardsInfo.download_uri,
-    allCardsUri: bulkData.data.find((o) => o.type === "all_cards").download_uri,
+    oracleCardsUri: oracleCardsInfo.jsonl_download_uri,
+    allCardsUri: bulkData.data.find((o) => o.type === "all_cards")
+      .jsonl_download_uri,
   });
   cardData.updatedAt = Date.parse(oracleCardsInfo.updated_at);
 

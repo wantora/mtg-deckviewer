@@ -84,6 +84,13 @@ class CardData {
         this.#cardObject.set_type !== "token")
     );
   }
+  availablePrintedName() {
+    if (this.#cardObject.card_faces) {
+      return !!this.#cardObject.card_faces[0].printed_name;
+    } else {
+      return !!this.#cardObject.printed_name;
+    }
+  }
 
   get object() {
     return this.#cardObject;
@@ -186,15 +193,15 @@ async function cardsParser({oracleCardsUri, allCardsUri}) {
       card.uri = cardData.object.scryfall_uri;
       card.image = cardData.image;
     } else if (
-      cardData.object.lang === "en" &&
-      (cardData.object.card_faces
-        ? cardData.object.card_faces[0].printed_name
-        : cardData.object.printed_name) &&
+      ["en", "de", "es", "fr", "it", "ja", "ko", "pt"].includes(
+        cardData.object.lang
+      ) &&
+      cardData.availablePrintedName() &&
       cardData.checkLegal()
     ) {
-      const key = cardData.printedIndexName;
-      if (!cardNames[key]) {
-        cardNames[key] = cardNames[cardData.indexName];
+      const printedIndexName = cardData.printedIndexName;
+      if (!cardNames[printedIndexName]) {
+        cardNames[printedIndexName] = cardNames[cardData.indexName];
       }
     }
   });

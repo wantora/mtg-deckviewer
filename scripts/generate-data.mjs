@@ -142,7 +142,7 @@ class CardData {
     }
 
     if (imageUris) {
-      return imageUris.normal;
+      return imageUris.grid;
     } else {
       return null;
     }
